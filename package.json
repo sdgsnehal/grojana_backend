@@ -10,12 +10,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/cookie-parser": "^1.4.9",
     "bcrypt": "^6.0.0",
+    "cookie": "^1.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.17.1"
+    "mongoose": "^8.17.1",
+    "parser": "^0.1.4"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
