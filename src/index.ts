@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db";
 import cookieParser from "cookie-parser";
-import userRouter from "./routes/user.routes.js";
+import userRouter from "./routes/user.routes";
 
 dotenv.config();
 connectDB();
