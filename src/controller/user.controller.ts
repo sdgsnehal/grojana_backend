@@ -148,22 +148,22 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
 });
 
 // Logout
-// const logoutUser = asyncHandler(async (req: Request, res: Response) => {
-//   await User.findByIdAndUpdate(
-//     req.user?._id,
-//     { $set: { refreshToken: undefined } },
-//     { new: true }
-//   );
+const logoutUser = asyncHandler(async (req: Request, res: Response) => {
+  await User.findByIdAndUpdate(
+    req.user?._id,
+    { $set: { refreshToken: undefined } },
+    { new: true }
+  );
 
-//   const options = { httpOnly: true, secure: true };
+  const options = { httpOnly: true, secure: true };
 
-//   return res
-//     .status(200)
-//     .clearCookie("refreshToken", options)
-//     .clearCookie("accessToken", options)
-//     .json(new ApiResponse(200, {}, "User logged out successfully"));
-// });
+  return res
+    .status(200)
+    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", options)
+    .json(new ApiResponse(200, {}, "User logged out successfully"));
+});
 
 // (Other handlers like changeCurrentPassword, updateUserAvatar, etc. would be similarly typed)
 
-export { registerUser, loginUser, refreshAccessToken };
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
