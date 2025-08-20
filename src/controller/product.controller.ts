@@ -6,77 +6,82 @@ import { ApiError } from "../utils/ApiError";
 import { User, IUser } from "../models/user.model";
 import { ApiResponse } from "../utils/Apiresponse";
 import { ProductModel } from "../models/product.model";
-export const createProduct = asyncHandler(
-  async (req: Request, res: Response) => {
-    const {
-      name,
-      image,
-      tags,
-      rating,
-      reviewCount,
-      description,
-      weights,
-      sku,
-      categories,
-      detailedDescription,
-      inStock,
-      stockText,
-      originalPrice,
-      currentPrice,
-      features,
-      reviews,
-      salePrice,
-      currency,
-      badge,
-      isBestSeller,
-      isOnSale,
-      isPromo,
-      ladduTypes,
-    } = req.body;
+const createProduct = asyncHandler(async (req: Request, res: Response) => {
+  const {
+    name,
+    image,
+    tags,
+    rating,
+    reviewCount,
+    description,
+    weights,
+    sku,
+    categories,
+    detailedDescription,
+    inStock,
+    stockText,
+    originalPrice,
+    currentPrice,
+    features,
+    reviews,
+    salePrice,
+    currency,
+    badge,
+    isBestSeller,
+    isOnSale,
+    isPromo,
+    ladduTypes,
+  } = req.body;
 
-    // 🔎 Validation
-    if (!name || !sku || !originalPrice || !image?.length) {
-      throw new ApiError(
-        400,
-        "Missing required fields: name, sku, originalPrice, or image"
-      );
-    }
-
-    // 🔎 Check if product with same SKU already exists
-    const existingProduct = await ProductModel.findOne({ sku });
-    if (existingProduct) {
-      throw new ApiError(409, "Product with this SKU already exists");
-    }
-
-    // ✅ Create new product
-    const newProduct = await ProductModel.create({
-      name,
-      image,
-      tags,
-      rating,
-      reviewCount,
-      description,
-      weights,
-      sku,
-      categories,
-      detailedDescription,
-      inStock,
-      stockText,
-      originalPrice,
-      currentPrice,
-      features,
-      reviews,
-      salePrice,
-      currency,
-      badge,
-      isBestSeller,
-      isOnSale,
-      isPromo,
-      ladduTypes,
-    });
-
-    return res
-      .status(201)
-      .json(new ApiResponse(201, newProduct, "Product created successfully"));
+  // 🔎 Validation
+  if (!name || !sku || !originalPrice || !image?.length) {
+    throw new ApiError(
+      400,
+      "Missing required fields: name, sku, originalPrice, or image"
+    );
   }
-);
+
+  // 🔎 Check if product with same SKU already exists
+  const existingProduct = await ProductModel.findOne({ sku });
+  if (existingProduct) {
+    throw new ApiError(409, "Product with this SKU already exists");
+  }
+
+  // ✅ Create new product
+  const newProduct = await ProductModel.create({
+    name,
+    image,
+    tags,
+    rating,
+    reviewCount,
+    description,
+    weights,
+    sku,
+    categories,
+    detailedDescription,
+    inStock,
+    stockText,
+    originalPrice,
+    currentPrice,
+    features,
+    reviews,
+    salePrice,
+    currency,
+    badge,
+    isBestSeller,
+    isOnSale,
+    isPromo,
+    ladduTypes,
+  });
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, newProduct, "Product created successfully"));
+});
+const getAllProducts = asyncHandler(async (req: Request, res: Response) => {
+  const products = await ProductModel.find();
+  return res
+    .status(200)
+    .json(new ApiResponse(200, products, "Products retrieved successfully"));
+});
+export { createProduct, getAllProducts };
