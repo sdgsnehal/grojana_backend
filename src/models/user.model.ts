@@ -9,6 +9,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   refreshToken?: string;
+  addresses: Types.ObjectId[];
 
   isPasswordCorrect(password: string): Promise<boolean>;
   generateAccessToken(): string;
@@ -39,9 +40,20 @@ const userSchema = new Schema<IUser>(
     refreshToken: {
       type: String,
     },
+    addresses: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Address",
+      },
+    ],
   },
   { timestamps: true }
 );
+
+// ✅ Limit addresses to max 5
+userSchema.path("addresses").validate(function (arr: Types.ObjectId[]) {
+  return arr.length <= 5;
+}, "Maximum 5 addresses allowed");
 
 // Hash password before save
 userSchema.pre<IUser>("save", async function (next) {

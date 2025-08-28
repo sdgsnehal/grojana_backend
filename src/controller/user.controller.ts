@@ -5,6 +5,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { User, IUser } from "../models/user.model";
 import { ApiResponse } from "../utils/Apiresponse";
+import { Address } from "../models/address.model";
 
 // Helper to generate both tokens
 const generateAccessTokenAndRefreshToken = async (
@@ -164,6 +165,95 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
+const saveAddress = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id; // assuming you attach user in auth middleware
+  if (!userId) throw new ApiError(401, "Unauthorized");
+
+  const { name, mobile, streetAddress, address, city, state, zip } = req.body;
+
+  if (
+    ![name, mobile, streetAddress, address, city, state, zip].every(Boolean)
+  ) {
+    throw new ApiError(400, "All address fields are required");
+  }
+
+  const user = await User.findById(userId).populate("addresses");
+  if (!user) throw new ApiError(404, "User not found");
+
+  if (user.addresses.length >= 5) {
+    throw new ApiError(400, "You can save maximum 5 addresses");
+  }
+
+  // Create address
+  const newAddress = await Address.create({
+    name,
+    mobile,
+    streetAddress,
+    address,
+    city,
+    state,
+    zip,
+  });
+
+  // Push into user
+  user.addresses.push(newAddress._id);
+  await user.save();
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, newAddress, "Address saved successfully"));
+});
+const getAddresses = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id; // comes from auth middleware
+  if (!userId) throw new ApiError(401, "Unauthorized");
+
+  const user = await User.findById(userId).populate("addresses");
+  if (!user) throw new ApiError(404, "User not found");
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, user.addresses, "Addresses fetched successfully")
+    );
+});
+const updateAddress = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id; // set by auth middleware
+  const { addressId } = req.params; // from route param
+  const { name, mobile, streetAddress, address, city, state, zip } = req.body;
+
+  if (!userId) throw new ApiError(401, "Unauthorized");
+
+  // Ensure the address exists in user's list
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
+
+  if (!user.addresses.includes(addressId as any)) {
+    throw new ApiError(403, "This address does not belong to you");
+  }
+
+  // Update the address
+  const updatedAddress = await Address.findByIdAndUpdate(
+    addressId,
+    { name, mobile, streetAddress, address, city, state, zip },
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedAddress) {
+    throw new ApiError(404, "Address not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedAddress, "Address updated successfully"));
+});
 // (Other handlers like changeCurrentPassword, updateUserAvatar, etc. would be similarly typed)
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  saveAddress,
+  getAddresses,
+  updateAddress,
+};
