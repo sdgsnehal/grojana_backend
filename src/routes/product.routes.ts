@@ -3,10 +3,16 @@ import {
   createProduct,
   getAllProducts,
 } from "../controller/product.controller";
-import { get } from "http";
+import { upload } from "../middleware/multer.middleware";
+
 const router = Router();
 router.route("/create").post((req, res, next) => {
-  createProduct(req, res, next);
+  upload.array("image")(req, res, (err) => {
+    if (err) {
+      return next(err);
+    }
+    createProduct(req, res, next);
+  });
 });
 router.route("/get-all").get((req, res, next) => {
   getAllProducts(req, res, next);

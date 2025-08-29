@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { Request, Response, NextFunction } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
-import { User, IUser } from "../models/user.model";
+import { User } from "../models/user.model";
 import { ApiResponse } from "../utils/Apiresponse";
 import { Address } from "../models/address.model";
 

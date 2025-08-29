@@ -1,13 +1,13 @@
 /// <reference path="./express.d.ts" />
 import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
 import cors from "cors";
 import connectDB from "./config/db";
 import cookieParser from "cookie-parser";
 import userRouter from "./routes/user.routes";
 import productRouter from "./routes/product.routes";
 
-dotenv.config();
 connectDB();
 
 const app = express();
