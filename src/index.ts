@@ -17,11 +17,17 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: "16kb" }));
-app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+
+// app.use();
+// app.use();
 app.use(cookieParser());
 
-app.use("/api/v1/users", userRouter);
+app.use(
+  "/api/v1/users",
+  express.json({ limit: "1mb" }),
+  express.urlencoded({ extended: true, limit: "1mb" }),
+  userRouter
+);
 app.use("/api/v1/products", productRouter);
 
 const PORT = process.env.PORT || 5000;

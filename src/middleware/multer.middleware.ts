@@ -7,6 +7,7 @@ const storage: StorageEngine = multer.diskStorage({
     file: Express.Multer.File,
     cb: (error: Error | null, destination: string) => void
   ) {
+    console.log("temp file:", req.files);
     cb(null, "./public/temp"); // save files in ./public/temp
   },
   filename: function (

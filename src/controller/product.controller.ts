@@ -21,7 +21,6 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
       }
     }
   }
-  console.log("IMAGES:", image);
   const weights = JSON.parse(req.body.weights);
   const tags = JSON.parse(req.body.tags);
   const badge = JSON.parse(req.body.badge);
@@ -100,4 +99,37 @@ const getAllProducts = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .json(new ApiResponse(200, products, "Products retrieved successfully"));
 });
-export { createProduct, getAllProducts };
+const uploadProductImages = asyncHandler(
+  async (req: Request, res: Response) => {
+    const files = req.files as Express.Multer.File[];
+    console.log(req.files, "<-- uploaded files");
+    if (!files || files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    const uploadedImages: { url: string; public_id: string }[] = [];
+
+    for (const file of files) {
+      const normalizedPath = path.resolve(file.path);
+      const uploaded = await uploadOnCloudinary(normalizedPath);
+      console.log(uploaded);
+      if (uploaded && uploaded.secure_url) {
+        uploadedImages.push({
+          url: uploaded.secure_url,
+          public_id: uploaded.public_id,
+        });
+      }
+    }
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          uploadedImages,
+          "Images uploaded successfully to Cloudinary"
+        )
+      );
+  }
+);
+export { createProduct, getAllProducts, uploadProductImages };
