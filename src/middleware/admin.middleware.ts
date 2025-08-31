@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { IUser } from "../models/user.model";
+import { ApiError } from "../utils/ApiError";
 
 export async function verifyAdmin(
   req: Request,
@@ -26,11 +27,9 @@ export async function verifyAdmin(
     ) {
       // Map decoded info to IUser shape (partial)
       req.user = { email: decoded.email } as IUser;
-      return next();
+      next();
     }
-
-    return res.status(403).json({ error: "Not admin" });
-  } catch (err) {
-    return res.status(403).json({ error: "Invalid token" });
+  } catch (error: any) {
+    throw new ApiError(401, error?.message || "Unauthorized request");
   }
 }

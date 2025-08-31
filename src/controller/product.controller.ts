@@ -9,32 +9,20 @@ import { ProductModel } from "../models/product.model";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import path from "path";
 const createProduct = asyncHandler(async (req: Request, res: Response) => {
-  const files = req.files as Express.Multer.File[]; // ✅ array of files
-  let image: string[] = [];
-
-  if (files && files.length > 0) {
-    for (const file of files) {
-      const normalizedPath = path.resolve(file.path);
-      const uploaded = await uploadOnCloudinary(normalizedPath);
-      if (uploaded && uploaded.secure_url) {
-        image.push(uploaded.secure_url); // ✅ collect all URLs
-      }
-    }
-  }
-  const weights = JSON.parse(req.body.weights);
-  const tags = JSON.parse(req.body.tags);
-  const badge = JSON.parse(req.body.badge);
-  const reviews = JSON.parse(req.body.reviews);
-  const features = JSON.parse(req.body.features);
-  const categories = JSON.parse(req.body.categories);
-
+  console.log(req.body, "<-- product data");
   const {
     name,
+    image,
     rating,
     reviewCount,
     description,
     sku,
-
+    weights,
+    tags,
+    badge,
+    reviews,
+    features,
+    categories,
     detailedDescription,
     inStock,
     stockText,
