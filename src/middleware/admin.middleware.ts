@@ -8,6 +8,7 @@ export async function verifyAdmin(
   res: Response,
   next: NextFunction
 ) {
+  console.log(req);
   const authHeader = req.headers["authorization"];
   if (!authHeader) return res.status(401).json({ error: "No token" });
 
@@ -29,6 +30,7 @@ export async function verifyAdmin(
       req.user = { email: decoded.email } as IUser;
       next();
     }
+    return res.status(403).json({ error: "Not an admin" });
   } catch (error: any) {
     throw new ApiError(401, error?.message || "Unauthorized request");
   }
