@@ -11,9 +11,13 @@ import productRouter from "./routes/product.routes";
 connectDB();
 
 const app = express();
+const allowedOrigins = [
+  process.env.CORS_ORIGIN_FRONTEND,
+  process.env.CORS_ORIGIN_ADMIN,
+].filter(Boolean) as string[];
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN, // ✅ frontend URL
+    origin: allowedOrigins,
     credentials: true,
   })
 );

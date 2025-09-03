@@ -76,7 +76,7 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
     isPromo,
     ladduTypes,
   });
-
+  console.log("success");
   return res
     .status(201)
     .json(new ApiResponse(201, newProduct, "Product created successfully"));

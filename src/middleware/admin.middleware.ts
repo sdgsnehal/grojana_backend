@@ -1,14 +1,14 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { IUser } from "../models/user.model";
-import { ApiError } from "../utils/ApiError";
+import { OAuth2Client } from "google-auth-library";
+import { User, IUser } from "../models/user.model";
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export async function verifyAdmin(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  console.log(req);
   const authHeader = req.headers["authorization"];
   if (!authHeader) return res.status(401).json({ error: "No token" });
 
@@ -16,22 +16,24 @@ export async function verifyAdmin(
   if (!token) return res.status(401).json({ error: "Token missing" });
 
   try {
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!) as {
-      email?: string;
-    };
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID, // 👈 must match
+    });
 
+    const payload = ticket.getPayload();
     if (
-      decoded?.email &&
+      payload?.email &&
       ["sdgsnehal@gmail.com", "ankitshanivare@gmail.com"].includes(
-        decoded.email
+        payload.email
       )
     ) {
-      // Map decoded info to IUser shape (partial)
-      req.user = { email: decoded.email } as IUser;
-      next();
+      req.user = { email: payload.email } as IUser;
+      return next();
     }
+
     return res.status(403).json({ error: "Not an admin" });
-  } catch (error: any) {
-    throw new ApiError(401, error?.message || "Unauthorized request");
+  } catch (err) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 }
