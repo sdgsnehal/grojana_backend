@@ -91,6 +91,7 @@ const uploadProductImages = asyncHandler(
   async (req: Request, res: Response) => {
     const files = req.files as Express.Multer.File[];
     console.log(req.files, "<-- uploaded files");
+
     if (!files || files.length === 0) {
       return res.status(400).json({ message: "No files uploaded" });
     }
@@ -98,9 +99,10 @@ const uploadProductImages = asyncHandler(
     const uploadedImages: { url: string; public_id: string }[] = [];
 
     for (const file of files) {
-      const normalizedPath = path.resolve(file.path);
-      const uploaded = await uploadOnCloudinary(normalizedPath);
+      // Upload directly from buffer
+      const uploaded = await uploadOnCloudinary(file.buffer);
       console.log(uploaded);
+
       if (uploaded && uploaded.secure_url) {
         uploadedImages.push({
           url: uploaded.secure_url,
