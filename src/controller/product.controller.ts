@@ -7,7 +7,8 @@ import { User, IUser } from "../models/user.model";
 import { ApiResponse } from "../utils/Apiresponse";
 import { ProductModel } from "../models/product.model";
 import { uploadOnCloudinary } from "../utils/cloudinary";
-import path from "path";
+import { v4 as uuidv4 } from "uuid";
+
 const createProduct = asyncHandler(async (req: Request, res: Response) => {
   console.log(req.body, "<-- product data");
   const {
@@ -16,7 +17,6 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
     rating,
     reviewCount,
     description,
-    sku,
     weights,
     tags,
     badge,
@@ -35,7 +35,7 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
     isPromo,
     ladduTypes,
   } = req.body;
-
+  const sku = `GROJ-AS-${uuidv4().slice(0, 6).toUpperCase()}`;
   // 🔎 Validation
   if (!name || !sku || !originalPrice || !image?.length) {
     throw new ApiError(
