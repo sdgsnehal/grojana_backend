@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createProduct,
   getAllProducts,
+  getProductById,
   uploadProductImages,
 } from "../controller/product.controller";
 import { upload } from "../middleware/multer.middleware";
@@ -20,5 +21,8 @@ router.route("/upload-images").post((req, res, next) => {
 router.route("/get-all").get((req, res, next) => {
   console.log("get all");
   getAllProducts(req, res, next);
+});
+router.route("/:id").get((req, res, next) => {
+  getProductById(req, res, next);
 });
 export default router;

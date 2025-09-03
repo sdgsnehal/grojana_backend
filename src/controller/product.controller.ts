@@ -122,4 +122,20 @@ const uploadProductImages = asyncHandler(
       );
   }
 );
-export { createProduct, getAllProducts, uploadProductImages };
+const getProductById = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  if (!id || id.length < 12) {
+    throw new ApiError(400, "Invalid Product Id");
+  }
+
+  const product = await ProductModel.findById(id);
+
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, product, "Product fetched successfully"));
+});
+export { createProduct, getAllProducts, uploadProductImages, getProductById };
