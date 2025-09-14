@@ -3,6 +3,7 @@ import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
 import cors from "cors";
+import { CorsOptions } from "cors";
 import connectDB from "./config/db";
 import cookieParser from "cookie-parser";
 import userRouter from "./routes/user.routes";
@@ -15,12 +16,18 @@ const allowedOrigins = [
   process.env.CORS_ORIGIN_FRONTEND,
   process.env.CORS_ORIGIN_ADMIN,
 ].filter(Boolean) as string[];
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-  })
-);
+
+const corsOptions: CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));

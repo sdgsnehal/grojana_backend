@@ -69,9 +69,29 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, "Username or Email is required");
   }
 
-  const user = await User.findOne({
-    $or: [{ userName }, { email }],
-  });
+  const queryConditions = [];
+
+  if (email && email.trim()) {
+    queryConditions.push({ email: email.trim() });
+  }
+
+  if (userName && userName.trim()) {
+    queryConditions.push({ userName: userName.trim() });
+  }
+
+  if (queryConditions.length === 0) {
+    throw new ApiError(400, "Valid Username or Email is required");
+  }
+
+  // Use single condition if only one is provided, otherwise use $or
+  const query =
+    queryConditions.length === 1
+      ? queryConditions[0]
+      : { $or: queryConditions };
+
+  const user = await User.findOne(query);
+  console.log("user:", user);
+  console.log("user:", user);
   if (!user) {
     throw new ApiError(404, "User not found");
   }
