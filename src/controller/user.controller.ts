@@ -267,7 +267,35 @@ const updateAddress = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, updatedAddress, "Address updated successfully"));
 });
 // (Other handlers like changeCurrentPassword, updateUserAvatar, etc. would be similarly typed)
+const updateUserDetails = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  if (!userId) throw new ApiError(401, "Unauthorized");
 
+  const { fullName, phone, gender } = req.body;
+
+  if (!fullName && !phone && !gender) {
+    throw new ApiError(400, "At least one field (fullName, phone, or gender) is required");
+  }
+
+  const updateData: any = {};
+  if (fullName !== undefined) updateData.fullName = fullName;
+  if (phone !== undefined) updateData.phone = phone;
+  if (gender !== undefined) updateData.gender = gender;
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { $set: updateData },
+    { new: true, runValidators: true }
+  ).select("-password -refreshToken");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User details updated successfully"));
+});
 export {
   registerUser,
   loginUser,
@@ -276,4 +304,5 @@ export {
   saveAddress,
   getAddresses,
   updateAddress,
+  updateUserDetails,
 };

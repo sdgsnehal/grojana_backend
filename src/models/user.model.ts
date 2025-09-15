@@ -7,6 +7,9 @@ export interface IUser extends Document {
   _id: Types.ObjectId;
   userName: string;
   email: string;
+  phone: number;
+  fullName: string;
+  gender?: string;
   password: string;
   refreshToken?: string;
   addresses: Types.ObjectId[];
@@ -31,6 +34,20 @@ const userSchema = new Schema<IUser>(
       required: true,
       unique: true,
       lowercase: true,
+      trim: true,
+    },
+    phone: {
+      type: Number,
+      unique: true,
+    },
+    fullName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other"],
       trim: true,
     },
     password: {
