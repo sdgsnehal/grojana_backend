@@ -15,10 +15,10 @@ const router = Router();
 router.route("/register").post(registerUser);
 router.route("/login").post(loginUser);
 router.route("/logout").post(verifyJwt, logoutUser);
-router.route("/saveaddress").post(verifyJwt, saveAddress);
+router.route("/save-address").post(verifyJwt, saveAddress);
 router.route("/getaddresses").get(verifyJwt, getAddresses);
 router.route("/address/:addressId").put(verifyJwt, updateAddress);
-router.route("/userdetails").put(verifyJwt, updateUserDetails);
+router.route("/update-details").put(verifyJwt, updateUserDetails);
 //secured routes
 
 export default router;
