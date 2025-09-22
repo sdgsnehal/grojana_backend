@@ -1,13 +1,15 @@
 import { Request, Response } from "express";
-import Stripe from "stripe";
+import Razorpay from "razorpay";
+import crypto from "crypto";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/Apiresponse";
 import { OrderModel, IOrder } from "../models/order.model";
 import { User } from "../models/user.model";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-08-27.basil",
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
 });
 
 const createOrder = asyncHandler(async (req: Request, res: Response) => {
@@ -42,21 +44,21 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
     orderStatus: "pending",
   });
 
-  // If payment method is online, create Stripe payment intent
-  let paymentIntent = null;
+  // If payment method is online, create Razorpay order
+  let razorpayOrder = null;
   if (paymentMethod === "online_payment") {
     try {
-      paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(totalAmount * 100), // Convert to cents
-        currency: "inr",
-        metadata: {
+      razorpayOrder = await razorpay.orders.create({
+        amount: Math.round(totalAmount * 100), // Convert to paise
+        currency: "INR",
+        notes: {
           orderId: order._id.toString(),
           orderNumber: order.orderNumber,
         },
       });
     } catch (error) {
       await OrderModel.findByIdAndDelete(order._id);
-      throw new ApiError(500, "Failed to create payment intent");
+      throw new ApiError(500, "Failed to create Razorpay order");
     }
   }
 
@@ -69,7 +71,7 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
       201,
       {
         order: populatedOrder,
-        paymentIntent: paymentIntent,
+        razorpayOrder: razorpayOrder,
       },
       "Order created successfully"
     )
@@ -77,29 +79,37 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const verifyPayment = asyncHandler(async (req: Request, res: Response) => {
-  const { payment_intent_id, orderId } = req.body;
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body;
 
-  if (!payment_intent_id || !orderId) {
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !orderId) {
     throw new ApiError(400, "Missing payment verification parameters");
   }
 
   try {
-    // Retrieve payment intent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(
-      payment_intent_id
-    );
+    // Verify Razorpay signature
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+      .update(body.toString())
+      .digest("hex");
 
-    if (paymentIntent.status !== "succeeded") {
+    if (expectedSignature !== razorpay_signature) {
       // Update order status to failed
       await OrderModel.findByIdAndUpdate(orderId, {
         paymentStatus: "failed",
       });
-      throw new ApiError(400, "Payment not completed");
+      throw new ApiError(400, "Invalid signature");
     }
 
-    // Verify that the payment intent belongs to this order
-    if (paymentIntent.metadata.orderId !== orderId) {
-      throw new ApiError(400, "Payment verification failed - order mismatch");
+    // Fetch payment details from Razorpay to double-check
+    const payment = await razorpay.payments.fetch(razorpay_payment_id);
+
+    if (payment.status !== "captured") {
+      // Update order status to failed
+      await OrderModel.findByIdAndUpdate(orderId, {
+        paymentStatus: "failed",
+      });
+      throw new ApiError(400, "Payment not captured");
     }
 
     // Update order status to completed
