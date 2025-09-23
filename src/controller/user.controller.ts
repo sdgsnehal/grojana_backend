@@ -90,8 +90,7 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
       : { $or: queryConditions };
 
   const user = await User.findOne(query);
-  console.log("user:", user);
-  console.log("user:", user);
+
   if (!user) {
     throw new ApiError(404, "User not found");
   }
@@ -274,7 +273,10 @@ const updateUserDetails = asyncHandler(async (req: Request, res: Response) => {
   const { fullName, phone, gender } = req.body;
 
   if (!fullName && !phone && !gender) {
-    throw new ApiError(400, "At least one field (fullName, phone, or gender) is required");
+    throw new ApiError(
+      400,
+      "At least one field (fullName, phone, or gender) is required"
+    );
   }
 
   const updateData: any = {};

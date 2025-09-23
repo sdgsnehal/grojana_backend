@@ -33,6 +33,9 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
   // Calculate total amount
   const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
+  // Generate order number
+  const orderNumber = `GRJ${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
   // Create order in database
   const order = await OrderModel.create({
     user: userId,
@@ -42,6 +45,7 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
     paymentMethod,
     paymentStatus: paymentMethod === "cash_on_delivery" ? "pending" : "pending",
     orderStatus: "pending",
+    orderNumber,
   });
 
   // If payment method is online, create Razorpay order
@@ -81,11 +85,24 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
 const verifyPayment = asyncHandler(async (req: Request, res: Response) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body;
 
-  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !orderId) {
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
     throw new ApiError(400, "Missing payment verification parameters");
   }
 
   try {
+    // Find the MongoDB order ID from Razorpay order
+    let mongoOrderId = orderId;
+
+    // If orderId is not provided or is a Razorpay order ID, fetch it from Razorpay
+    if (!orderId || orderId.startsWith('order_')) {
+      const razorpayOrderDetails = await razorpay.orders.fetch(razorpay_order_id);
+      mongoOrderId = razorpayOrderDetails.notes?.orderId;
+
+      if (!mongoOrderId) {
+        throw new ApiError(400, "Order ID not found in Razorpay order notes");
+      }
+    }
+
     // Verify Razorpay signature
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
@@ -95,7 +112,7 @@ const verifyPayment = asyncHandler(async (req: Request, res: Response) => {
 
     if (expectedSignature !== razorpay_signature) {
       // Update order status to failed
-      await OrderModel.findByIdAndUpdate(orderId, {
+      await OrderModel.findByIdAndUpdate(mongoOrderId, {
         paymentStatus: "failed",
       });
       throw new ApiError(400, "Invalid signature");
@@ -106,7 +123,7 @@ const verifyPayment = asyncHandler(async (req: Request, res: Response) => {
 
     if (payment.status !== "captured") {
       // Update order status to failed
-      await OrderModel.findByIdAndUpdate(orderId, {
+      await OrderModel.findByIdAndUpdate(mongoOrderId, {
         paymentStatus: "failed",
       });
       throw new ApiError(400, "Payment not captured");
@@ -114,7 +131,7 @@ const verifyPayment = asyncHandler(async (req: Request, res: Response) => {
 
     // Update order status to completed
     const updatedOrder = await OrderModel.findByIdAndUpdate(
-      orderId,
+      mongoOrderId,
       {
         paymentStatus: "completed",
         orderStatus: "confirmed",
@@ -128,10 +145,12 @@ const verifyPayment = asyncHandler(async (req: Request, res: Response) => {
         new ApiResponse(200, updatedOrder, "Payment verified successfully")
       );
   } catch (error: any) {
-    // Update order status to failed
-    await OrderModel.findByIdAndUpdate(orderId, {
-      paymentStatus: "failed",
-    });
+    // Try to update order status to failed if we have a valid MongoDB order ID
+    if (error.mongoOrderId) {
+      await OrderModel.findByIdAndUpdate(error.mongoOrderId, {
+        paymentStatus: "failed",
+      });
+    }
     throw new ApiError(400, "Payment verification failed");
   }
 });
