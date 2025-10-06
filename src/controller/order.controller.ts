@@ -337,6 +337,54 @@ const getOrdersByStatus = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const getAllOrders = asyncHandler(async (req: Request, res: Response) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const skip = (page - 1) * limit;
+
+  const orders = await OrderModel.find()
+    .populate("items.product")
+    .populate("user", "userName email fullName phone")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalOrders = await OrderModel.countDocuments();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        orders,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(totalOrders / limit),
+          totalOrders,
+          hasNextPage: page < Math.ceil(totalOrders / limit),
+          hasPrevPage: page > 1,
+        },
+      },
+      "All orders fetched successfully"
+    )
+  );
+});
+
+const getOrderByIdAdmin = asyncHandler(async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+
+  const order = await OrderModel.findById(orderId)
+    .populate("items.product")
+    .populate("user", "userName email fullName phone");
+
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, order, "Order fetched successfully"));
+});
+
 const getOrderStats = asyncHandler(async (req: Request, res: Response) => {
   const stats = await OrderModel.aggregate([
     {
@@ -378,5 +426,7 @@ export {
   updateOrderStatus,
   cancelOrder,
   getOrdersByStatus,
+  getAllOrders,
+  getOrderByIdAdmin,
   getOrderStats,
 };

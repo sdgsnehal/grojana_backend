@@ -4,6 +4,7 @@ import {
   getAllProducts,
   getProductById,
   uploadProductImages,
+  updateProduct,
 } from "../controller/product.controller";
 import { upload } from "../middleware/multer.middleware";
 import { verifyAdmin } from "../middleware/admin.middleware";
@@ -25,4 +26,5 @@ router.route("/get-all").get((req, res, next) => {
 router.route("/:id").get((req, res, next) => {
   getProductById(req, res, next);
 });
+router.route("/:id").put(verifyAdmin, updateProduct);
 export default router;

@@ -138,4 +138,34 @@ const getProductById = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .json(new ApiResponse(200, product, "Product fetched successfully"));
 });
-export { createProduct, getAllProducts, uploadProductImages, getProductById };
+
+const updateProduct = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (!id || id.length < 12) {
+    throw new ApiError(400, "Invalid Product Id");
+  }
+
+  // Remove SKU from request body to prevent it from being updated
+  const { sku, ...updateData } = req.body;
+
+  if (sku) {
+    throw new ApiError(400, "SKU cannot be modified");
+  }
+
+  const updatedProduct = await ProductModel.findByIdAndUpdate(
+    id,
+    updateData,
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedProduct) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedProduct, "Product updated successfully"));
+});
+
+export { createProduct, getAllProducts, uploadProductImages, getProductById, updateProduct };
