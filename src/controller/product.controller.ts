@@ -8,6 +8,7 @@ import { ApiResponse } from "../utils/Apiresponse";
 import { ProductModel } from "../models/product.model";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { v4 as uuidv4 } from "uuid";
+import { OrderModel } from "../models/order.model";
 
 const createProduct = asyncHandler(async (req: Request, res: Response) => {
   console.log(req.body, "<-- product data");
@@ -168,4 +169,74 @@ const updateProduct = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, updatedProduct, "Product updated successfully"));
 });
 
-export { createProduct, getAllProducts, uploadProductImages, getProductById, updateProduct };
+const addReview = asyncHandler(async (req: Request, res: Response) => {
+  const { productId } = req.params;
+  const { rating, comment } = req.body;
+  const user = (req as any).user;
+
+  // Validate product ID
+  if (!productId || productId.length < 12) {
+    throw new ApiError(400, "Invalid Product Id");
+  }
+
+  // Validate required fields
+  if (!rating || rating < 1 || rating > 5) {
+    throw new ApiError(400, "Rating is required and must be between 1 and 5");
+  }
+
+  // Check if user is authenticated
+  if (!user || !user._id) {
+    throw new ApiError(401, "User not authenticated");
+  }
+
+  // Check if the product exists
+  const product = await ProductModel.findById(productId);
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  // Check if the user has purchased this product
+  const hasPurchased = await OrderModel.findOne({
+    user: user._id,
+    "items.product": productId,
+    orderStatus: "delivered",
+  });
+
+  if (!hasPurchased) {
+    throw new ApiError(
+      403,
+      "You can only review products you have purchased and received"
+    );
+  }
+
+  // Check if the user has already reviewed this product
+  const existingReview = product.reviews.find(
+    (review) => review.user.toString() === user._id.toString()
+  );
+
+  if (existingReview) {
+    throw new ApiError(400, "You have already reviewed this product");
+  }
+
+  // Add the review
+  product.reviews.push({
+    user: user._id,
+    userName: user.userName || user.fullName || "Anonymous",
+    rating,
+    comment: comment || "",
+    date: new Date(),
+  });
+
+  // Update product rating and review count
+  const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0);
+  product.rating = totalRating / product.reviews.length;
+  product.reviewCount = product.reviews.length;
+
+  await product.save();
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, product, "Review added successfully"));
+});
+
+export { createProduct, getAllProducts, uploadProductImages, getProductById, updateProduct, addReview };

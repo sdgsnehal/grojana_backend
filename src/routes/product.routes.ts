@@ -5,6 +5,7 @@ import {
   getProductById,
   uploadProductImages,
   updateProduct,
+  addReview,
 } from "../controller/product.controller";
 import { upload } from "../middleware/multer.middleware";
 import { verifyAdmin } from "../middleware/admin.middleware";
@@ -27,4 +28,5 @@ router.route("/:id").get((req, res, next) => {
   getProductById(req, res, next);
 });
 router.route("/:id").put(verifyAdmin, updateProduct);
+router.route("/:id/review").post(addReview);
 export default router;

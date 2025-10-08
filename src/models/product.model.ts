@@ -1,7 +1,8 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 
 interface Review {
-  user: string;
+  user: Types.ObjectId;
+  userName: string;
   rating: number;
   comment: string;
   date: Date;
@@ -47,8 +48,9 @@ export interface Product extends Document {
 
 const reviewSchema = new Schema<Review>(
   {
-    user: { type: String, required: true },
-    rating: { type: Number, required: true, min: 0, max: 5 },
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    userName: { type: String, required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String },
     date: { type: Date, default: Date.now },
   },
