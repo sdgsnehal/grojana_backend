@@ -9,6 +9,7 @@ import cookieParser from "cookie-parser";
 import userRouter from "./routes/user.routes";
 import productRouter from "./routes/product.routes";
 import orderRouter from "./routes/order.routes";
+import categoryRouter from "./routes/category.routes";
 
 connectDB();
 
@@ -36,6 +37,7 @@ app.use(cookieParser());
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/products", productRouter);
 app.use("/api/v1/orders", orderRouter);
+app.use("/api/v1/categories", categoryRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
