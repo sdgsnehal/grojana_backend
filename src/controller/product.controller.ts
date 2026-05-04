@@ -85,7 +85,27 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(201, newProduct, "Product created successfully"));
 });
 const getAllProducts = asyncHandler(async (req: Request, res: Response) => {
-  const products = await ProductModel.find();
+  const { badge, category, sort } = req.query;
+
+  const filter: Record<string, any> = {};
+
+  if (badge) {
+    filter["badge.text"] = { $regex: new RegExp(badge as string, "i") };
+  }
+
+  if (category) {
+    const cats = (category as string).split(",").map((c) => c.trim());
+    filter["categories"] = { $in: cats };
+  }
+
+  let sortOption: Record<string, 1 | -1> = {};
+  if (sort === "price_asc") {
+    sortOption = { originalPrice: 1 };
+  } else if (sort === "price_desc") {
+    sortOption = { originalPrice: -1 };
+  }
+
+  const products = await ProductModel.find(filter).sort(sortOption);
   return res
     .status(200)
     .json(new ApiResponse(200, products, "Products retrieved successfully"));
