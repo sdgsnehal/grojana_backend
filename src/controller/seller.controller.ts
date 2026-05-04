@@ -4,18 +4,18 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/Apiresponse";
 import { SellerModel } from "../models/seller.model";
+import { ProductModel } from "../models/product.model";
 
 const bankDetailsSchema = z.object({
-  accountHolderName: z
-    .string()
-    .trim()
-    .min(1, "Account holder name is required"),
-  accountNumber: z.string().trim().min(1, "Account number is required"),
+  accountHolderName: z.string().trim().optional(),
+  accountNumber: z.string().trim().optional(),
   ifscCode: z
     .string()
     .trim()
-    .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Invalid IFSC code"),
-  bankName: z.string().trim().min(1, "Bank name is required"),
+    .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Invalid IFSC code")
+    .or(z.literal(""))
+    .optional(),
+  bankName: z.string().trim().optional(),
 });
 
 const createSellerSchema = z.object({
@@ -33,7 +33,8 @@ const createSellerSchema = z.object({
       "Invalid GSTIN (e.g. 27AAAAA0000A1Z5)",
     )
     .or(z.literal(""))
-    .optional(),
+    .optional()
+    .nullable(),
   address: z.string().trim().min(1, "Address is required"),
   city: z.string().trim().min(1, "City is required"),
   state: z.string().trim().min(1, "State is required"),
@@ -41,13 +42,26 @@ const createSellerSchema = z.object({
     .string()
     .trim()
     .regex(/^[1-9][0-9]{5}$/, "Invalid pincode"),
-  bankDetails: bankDetailsSchema,
+  bankDetails: bankDetailsSchema.optional(),
 });
 
 const updateSellerSchema = createSellerSchema.partial();
 
+const stripEmptyBankDetails = (body: Record<string, any>) => {
+  const bd = body.bankDetails;
+  if (bd && typeof bd === "object") {
+    const isEmpty = ["accountHolderName", "accountNumber", "ifscCode", "bankName"]
+      .every((k) => !bd[k] || bd[k].trim() === "");
+    if (isEmpty) {
+      const { bankDetails, ...rest } = body;
+      return rest;
+    }
+  }
+  return body;
+};
+
 const createSeller = asyncHandler(async (req: Request, res: Response) => {
-  const result = createSellerSchema.safeParse(req.body);
+  const result = createSellerSchema.safeParse(stripEmptyBankDetails(req.body));
   if (!result.success) {
     const message = result.error.issues.map((e) => e.message).join(", ");
     throw new ApiError(400, message);
@@ -145,10 +159,34 @@ const deleteSeller = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, null, "Seller deleted successfully"));
 });
 
+const getSellerProducts = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const idResult = z
+    .string()
+    .regex(/^[a-f\d]{24}$/i, "Invalid seller ID")
+    .safeParse(id);
+  if (!idResult.success) {
+    throw new ApiError(400, "Invalid seller ID");
+  }
+
+  const seller = await SellerModel.findById(id);
+  if (!seller) {
+    throw new ApiError(404, "Seller not found");
+  }
+
+  const products = await ProductModel.find({ seller: id });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, products, "Seller products retrieved successfully"));
+});
+
 export {
   createSeller,
   getAllSellers,
   getSellerById,
   updateSeller,
   deleteSeller,
+  getSellerProducts,
 };

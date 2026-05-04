@@ -13,12 +13,12 @@ export interface ISeller extends Document {
   email: string;
   phone: string;
   businessName: string;
-  GSTNumber: string;
+  GSTNumber?: string;
   address: string;
   city: string;
   state: string;
   pincode: string;
-  bankDetails: BankDetails;
+  bankDetails?: BankDetails;
   rating: number;
   createdAt: Date;
   updatedAt: Date;
@@ -52,7 +52,6 @@ const sellerSchema = new Schema<ISeller>(
     },
     GSTNumber: {
       type: String,
-      required: [true, "GST number is required"],
       uppercase: true,
       trim: true,
     },
@@ -68,7 +67,7 @@ const sellerSchema = new Schema<ISeller>(
       required: [true, "Pincode is required"],
       trim: true,
     },
-    bankDetails: { type: bankDetailsSchema, required: true },
+    bankDetails: { type: bankDetailsSchema },
     rating: { type: Number, default: 0, min: 0, max: 5 },
   },
   { timestamps: true }

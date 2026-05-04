@@ -151,7 +151,7 @@ const getProductById = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, "Invalid Product Id");
   }
 
-  const product = await ProductModel.findById(id);
+  const product = await ProductModel.findById(id).populate("seller", "name businessName");
 
   if (!product) {
     throw new ApiError(404, "Product not found");
