@@ -13,6 +13,7 @@ import { OrderModel } from "../models/order.model";
 const createProduct = asyncHandler(async (req: Request, res: Response) => {
   console.log(req.body, "<-- product data");
   const {
+    seller,
     name,
     image,
     rating,
@@ -38,10 +39,10 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
   } = req.body;
   const sku = `GROJ-AS-${uuidv4().slice(0, 6).toUpperCase()}`;
   // 🔎 Validation
-  if (!name || !sku || !originalPrice || !image?.length) {
+  if (!seller || !name || !sku || !originalPrice || !image?.length) {
     throw new ApiError(
       400,
-      "Missing required fields: name, sku, originalPrice, or image"
+      "Missing required fields: seller, name, sku, originalPrice, or image"
     );
   }
 
@@ -53,6 +54,7 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
 
   // ✅ Create new product
   const newProduct = await ProductModel.create({
+    seller,
     name,
     image,
     tags,

@@ -16,6 +16,7 @@ interface WeightOption {
 
 export interface Product extends Document {
   id: string;
+  seller: Types.ObjectId;
   name: string;
   image: string[];
   tags: string[];
@@ -68,6 +69,7 @@ const weightOptionSchema = new Schema<WeightOption>(
 
 const productSchema = new Schema<Product>(
   {
+    seller: { type: Schema.Types.ObjectId, ref: "Seller", required: true },
     name: { type: String, required: true },
     image: { type: [String], required: true },
     tags: { type: [String], default: [] },
@@ -102,6 +104,7 @@ const productSchema = new Schema<Product>(
   { timestamps: true }
 );
 
+productSchema.index({ seller: 1 });
 productSchema.index({ name: "text", description: "text", tags: "text" });
 productSchema.index({ categories: 1 });
 productSchema.index({ isBestSeller: 1, isOnSale: 1, isPromo: 1 });
