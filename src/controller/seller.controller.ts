@@ -43,8 +43,12 @@ const createSellerSchema = z.object({
     .trim()
     .regex(/^[1-9][0-9]{5}$/, "Invalid pincode"),
   bankDetails: bankDetailsSchema.optional(),
-  profileImages: z.array(z.string().url("Invalid profile image URL")).optional(),
-  productImages: z.array(z.string().url("Invalid product image URL")).optional(),
+  profileImages: z
+    .array(z.string().url("Invalid profile image URL"))
+    .optional(),
+  productImages: z
+    .array(z.string().url("Invalid product image URL"))
+    .optional(),
 });
 
 const updateSellerSchema = createSellerSchema.partial();
@@ -52,8 +56,12 @@ const updateSellerSchema = createSellerSchema.partial();
 const stripEmptyBankDetails = (body: Record<string, any>) => {
   const bd = body.bankDetails;
   if (bd && typeof bd === "object") {
-    const isEmpty = ["accountHolderName", "accountNumber", "ifscCode", "bankName"]
-      .every((k) => !bd[k] || bd[k].trim() === "");
+    const isEmpty = [
+      "accountHolderName",
+      "accountNumber",
+      "ifscCode",
+      "bankName",
+    ].every((k) => !bd[k] || bd[k].trim() === "");
     if (isEmpty) {
       const { bankDetails, ...rest } = body;
       return rest;
@@ -181,7 +189,39 @@ const getSellerProducts = asyncHandler(async (req: Request, res: Response) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, products, "Seller products retrieved successfully"));
+    .json(
+      new ApiResponse(200, products, "Seller products retrieved successfully"),
+    );
+});
+
+const getSellerImages = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  console.log("Fetching images for seller ID:", id);
+  const idResult = z
+    .string()
+    .regex(/^[a-f\d]{24}$/i, "Invalid seller ID")
+    .safeParse(id);
+  if (!idResult.success) {
+    throw new ApiError(400, "Invalid seller ID");
+  }
+
+  const seller = await SellerModel.findById(id).select(
+    "profileImages productImages",
+  );
+  if (!seller) {
+    throw new ApiError(404, "Seller not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        profileImages: seller.profileImages ?? [],
+        productImages: seller.productImages ?? [],
+      },
+      "Seller images fetched successfully",
+    ),
+  );
 });
 
 export {
@@ -191,4 +231,5 @@ export {
   updateSeller,
   deleteSeller,
   getSellerProducts,
+  getSellerImages,
 };
