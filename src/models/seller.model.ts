@@ -19,6 +19,8 @@ export interface ISeller extends Document {
   state: string;
   pincode: string;
   bankDetails?: BankDetails;
+  profileImages?: string[];
+  productImages?: string[];
   rating: number;
   createdAt: Date;
   updatedAt: Date;
@@ -68,6 +70,8 @@ const sellerSchema = new Schema<ISeller>(
       trim: true,
     },
     bankDetails: { type: bankDetailsSchema },
+    profileImages: { type: [String] },
+    productImages: { type: [String] },
     rating: { type: Number, default: 0, min: 0, max: 5 },
   },
   { timestamps: true }

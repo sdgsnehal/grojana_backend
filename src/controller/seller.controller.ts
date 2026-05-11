@@ -43,6 +43,8 @@ const createSellerSchema = z.object({
     .trim()
     .regex(/^[1-9][0-9]{5}$/, "Invalid pincode"),
   bankDetails: bankDetailsSchema.optional(),
+  profileImages: z.array(z.string().url("Invalid profile image URL")).optional(),
+  productImages: z.array(z.string().url("Invalid product image URL")).optional(),
 });
 
 const updateSellerSchema = createSellerSchema.partial();
