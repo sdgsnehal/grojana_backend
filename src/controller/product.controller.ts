@@ -145,6 +145,28 @@ const uploadProductImages = asyncHandler(
       );
   },
 );
+const getProductsByCategory = asyncHandler(async (req: Request, res: Response) => {
+  const { category } = req.params;
+  const { sort } = req.query;
+
+  if (!category) {
+    throw new ApiError(400, "Category is required");
+  }
+
+  let sortOption: Record<string, 1 | -1> = {};
+  if (sort === "price_asc") sortOption = { originalPrice: 1 };
+  else if (sort === "price_desc") sortOption = { originalPrice: -1 };
+  else if (sort === "rating") sortOption = { rating: -1 };
+
+  const products = await ProductModel.find({
+    categories: { $regex: new RegExp(`^${category}$`, "i") },
+  }).sort(sortOption);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, products, `Products in category '${category}' fetched successfully`));
+});
+
 const getProductById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!id || id.length < 12) {
@@ -275,6 +297,7 @@ const addReview = asyncHandler(async (req: Request, res: Response) => {
 export {
   createProduct,
   getAllProducts,
+  getProductsByCategory,
   uploadProductImages,
   getProductById,
   updateProduct,
