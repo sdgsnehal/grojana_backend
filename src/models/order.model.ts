@@ -17,7 +17,13 @@ export interface IOrder extends Document {
   shippingAddress: IAddress;
   paymentMethod: string;
   paymentStatus: "pending" | "completed" | "failed" | "refunded";
-  orderStatus: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
+  orderStatus:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled";
   orderNumber: string;
   trackingNumber?: string;
   estimatedDeliveryDate?: Date;
@@ -53,7 +59,7 @@ const orderItemSchema = new Schema<OrderItem>(
       min: 0,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const shippingAddressSchema = new Schema<IAddress>(
@@ -92,7 +98,7 @@ const shippingAddressSchema = new Schema<IAddress>(
       required: true,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const orderSchema = new Schema<IOrder>(
@@ -137,7 +143,14 @@ const orderSchema = new Schema<IOrder>(
     orderStatus: {
       type: String,
       required: true,
-      enum: ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"],
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
       default: "pending",
       index: true,
     },
@@ -165,7 +178,7 @@ const orderSchema = new Schema<IOrder>(
       trim: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 orderSchema.index({ user: 1, createdAt: -1 });

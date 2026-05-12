@@ -14,6 +14,7 @@ import { verifyJwt } from "../middleware/auth.middleware";
 const router = Router();
 router.route("/register").post(registerUser);
 router.route("/login").post(loginUser);
+router.route("/refresh-token").post(refreshAccessToken);
 router.route("/logout").post(verifyJwt, logoutUser);
 router.route("/save-address").post(verifyJwt, saveAddress);
 router.route("/getaddresses").get(verifyJwt, getAddresses);

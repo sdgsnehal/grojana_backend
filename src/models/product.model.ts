@@ -5,6 +5,7 @@ interface Review {
   userName: string;
   rating: number;
   comment: string;
+  images: string[];
   date: Date;
 }
 
@@ -53,6 +54,7 @@ const reviewSchema = new Schema<Review>(
     userName: { type: String, required: true },
     rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String },
+    images: { type: [String], default: [] },
     date: { type: Date, default: Date.now },
   },
   { _id: false }

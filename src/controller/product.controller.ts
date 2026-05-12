@@ -42,7 +42,7 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
   if (!seller || !name || !sku || !originalPrice || !image?.length) {
     throw new ApiError(
       400,
-      "Missing required fields: seller, name, sku, originalPrice, or image"
+      "Missing required fields: seller, name, sku, originalPrice, or image",
     );
   }
 
@@ -140,10 +140,10 @@ const uploadProductImages = asyncHandler(
         new ApiResponse(
           200,
           uploadedImages,
-          "Images uploaded successfully to Cloudinary"
-        )
+          "Images uploaded successfully to Cloudinary",
+        ),
       );
-  }
+  },
 );
 const getProductById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -151,7 +151,10 @@ const getProductById = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, "Invalid Product Id");
   }
 
-  const product = await ProductModel.findById(id).populate("seller", "name businessName");
+  const product = await ProductModel.findById(id).populate(
+    "seller",
+    "name businessName",
+  );
 
   if (!product) {
     throw new ApiError(404, "Product not found");
@@ -176,11 +179,10 @@ const updateProduct = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, "SKU cannot be modified");
   }
 
-  const updatedProduct = await ProductModel.findByIdAndUpdate(
-    id,
-    updateData,
-    { new: true, runValidators: true }
-  );
+  const updatedProduct = await ProductModel.findByIdAndUpdate(id, updateData, {
+    new: true,
+    runValidators: true,
+  });
 
   if (!updatedProduct) {
     throw new ApiError(404, "Product not found");
@@ -192,65 +194,74 @@ const updateProduct = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const addReview = asyncHandler(async (req: Request, res: Response) => {
-  const { productId } = req.params;
+  const { id } = req.params;
   const { rating, comment } = req.body;
   const user = (req as any).user;
 
-  // Validate product ID
-  if (!productId || productId.length < 12) {
+  if (!id || id.length < 12) {
     throw new ApiError(400, "Invalid Product Id");
   }
 
-  // Validate required fields
-  if (!rating || rating < 1 || rating > 5) {
+  const parsedRating = Number(rating);
+  if (!parsedRating || parsedRating < 1 || parsedRating > 5) {
     throw new ApiError(400, "Rating is required and must be between 1 and 5");
   }
 
-  // Check if user is authenticated
   if (!user || !user._id) {
     throw new ApiError(401, "User not authenticated");
   }
 
-  // Check if the product exists
-  const product = await ProductModel.findById(productId);
+  const product = await ProductModel.findById(id);
   if (!product) {
     throw new ApiError(404, "Product not found");
   }
 
-  // Check if the user has purchased this product
   const hasPurchased = await OrderModel.findOne({
     user: user._id,
-    "items.product": productId,
+    "items.product": id,
     orderStatus: "delivered",
   });
 
   if (!hasPurchased) {
     throw new ApiError(
       403,
-      "You can only review products you have purchased and received"
+      "You can only review products you have purchased and received",
     );
   }
 
-  // Check if the user has already reviewed this product
   const existingReview = product.reviews.find(
-    (review) => review.user.toString() === user._id.toString()
+    (review) => review.user.toString() === user._id.toString(),
   );
 
   if (existingReview) {
     throw new ApiError(400, "You have already reviewed this product");
   }
 
-  // Add the review
+  // Upload review images to Cloudinary if provided
+  const imageUrls: string[] = [];
+  const files = req.files as Express.Multer.File[] | undefined;
+  if (files && files.length > 0) {
+    for (const file of files) {
+      const uploaded = await uploadOnCloudinary(file.buffer);
+      if (uploaded?.secure_url) {
+        imageUrls.push(uploaded.secure_url);
+      }
+    }
+  }
+
   product.reviews.push({
     user: user._id,
     userName: user.userName || user.fullName || "Anonymous",
-    rating,
+    rating: parsedRating,
     comment: comment || "",
+    images: imageUrls,
     date: new Date(),
   });
 
-  // Update product rating and review count
-  const totalRating = product.reviews.reduce((sum, review) => sum + review.rating, 0);
+  const totalRating = product.reviews.reduce(
+    (sum, review) => sum + review.rating,
+    0,
+  );
   product.rating = totalRating / product.reviews.length;
   product.reviewCount = product.reviews.length;
 
@@ -261,4 +272,11 @@ const addReview = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(201, product, "Review added successfully"));
 });
 
-export { createProduct, getAllProducts, uploadProductImages, getProductById, updateProduct, addReview };
+export {
+  createProduct,
+  getAllProducts,
+  uploadProductImages,
+  getProductById,
+  updateProduct,
+  addReview,
+};
