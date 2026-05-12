@@ -3,6 +3,7 @@ import {
   createProduct,
   getAllProducts,
   getProductsByCategory,
+  searchProducts,
   getProductById,
   uploadProductImages,
   updateProduct,
@@ -23,6 +24,7 @@ router.route("/upload-images").post((req, res, next) => {
   });
 });
 router.route("/get-all").get(getAllProducts);
+router.route("/search").get(searchProducts);
 router.route("/category/:category").get(getProductsByCategory);
 router.route("/:id").get((req, res, next) => {
   getProductById(req, res, next);

@@ -110,6 +110,60 @@ const getAllProducts = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .json(new ApiResponse(200, products, "Products retrieved successfully"));
 });
+const searchProducts = asyncHandler(async (req: Request, res: Response) => {
+  const { q, category, minPrice, maxPrice, inStock, sort, page, limit } = req.query;
+
+  if (!q || !(q as string).trim()) {
+    throw new ApiError(400, "Search query 'q' is required");
+  }
+
+  const filter: Record<string, any> = {
+    $text: { $search: (q as string).trim() },
+  };
+
+  if (category) {
+    const cats = (category as string).split(",").map((c) => c.trim());
+    filter["categories"] = { $in: cats };
+  }
+
+  if (minPrice || maxPrice) {
+    filter["originalPrice"] = {};
+    if (minPrice) filter["originalPrice"]["$gte"] = Number(minPrice);
+    if (maxPrice) filter["originalPrice"]["$lte"] = Number(maxPrice);
+  }
+
+  if (inStock === "true") filter["inStock"] = true;
+
+  const pageNum = Math.max(1, parseInt(page as string) || 1);
+  const pageSize = Math.min(50, parseInt(limit as string) || 20);
+  const skip = (pageNum - 1) * pageSize;
+
+  let sortOption: Record<string, any> = { score: { $meta: "textScore" } };
+  if (sort === "price_asc") sortOption = { originalPrice: 1 };
+  else if (sort === "price_desc") sortOption = { originalPrice: -1 };
+  else if (sort === "rating") sortOption = { rating: -1 };
+
+  const [products, total] = await Promise.all([
+    ProductModel.find(filter, { score: { $meta: "textScore" } })
+      .sort(sortOption)
+      .skip(skip)
+      .limit(pageSize),
+    ProductModel.countDocuments(filter),
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      products,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    }, "Search results fetched successfully")
+  );
+});
+
 const uploadProductImages = asyncHandler(
   async (req: Request, res: Response) => {
     const files = req.files as Express.Multer.File[];
@@ -298,6 +352,7 @@ export {
   createProduct,
   getAllProducts,
   getProductsByCategory,
+  searchProducts,
   uploadProductImages,
   getProductById,
   updateProduct,
