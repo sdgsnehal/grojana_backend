@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createBlog,
+  getAdminBlogs,
   getAllBlogs,
   getBlogBySlug,
   getBlogById,
@@ -16,7 +17,7 @@ import { verifyAdmin } from "../middleware/admin.middleware";
 import { verifyJwt } from "../middleware/auth.middleware";
 
 const router = Router();
-
+console.log("blog routes loaded");
 // Public
 router.route("/get-all").get(getAllBlogs);
 router.route("/search").get(searchBlogs);
@@ -24,6 +25,7 @@ router.route("/slug/:slug").get(getBlogBySlug);
 router.route("/:id").get(getBlogById);
 
 // Admin only
+router.route("/admin/get-all").get(verifyAdmin, getAdminBlogs);
 router.route("/create").post(verifyAdmin, createBlog);
 router.route("/upload-images").post(verifyAdmin, (req, res, next) => {
   upload.array("images")(req, res, (err) => {

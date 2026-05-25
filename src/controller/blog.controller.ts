@@ -16,7 +16,16 @@ const generateSlug = (title: string): string => {
 
 const createBlog = asyncHandler(async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { title, content, excerpt, coverImage, images, tags, categories, isFeatured } = req.body;
+  const {
+    title,
+    content,
+    excerpt,
+    coverImage,
+    images,
+    tags,
+    categories,
+    isFeatured,
+  } = req.body;
 
   if (!title || !content) {
     throw new ApiError(400, "Title and content are required");
@@ -40,7 +49,46 @@ const createBlog = asyncHandler(async (req: Request, res: Response) => {
     status: "draft",
   });
 
-  return res.status(201).json(new ApiResponse(201, blog, "Blog created successfully"));
+  return res
+    .status(201)
+    .json(new ApiResponse(201, blog, "Blog created successfully"));
+});
+
+const getAdminBlogs = asyncHandler(async (req: Request, res: Response) => {
+  const { status, page, limit } = req.query;
+
+  const filter: Record<string, any> = {};
+  if (status === "draft" || status === "published") filter.status = status;
+
+  const pageNum = Math.max(1, parseInt(page as string) || 1);
+  const pageSize = Math.min(50, parseInt(limit as string) || 10);
+  const skip = (pageNum - 1) * pageSize;
+
+  const [blogs, total] = await Promise.all([
+    BlogModel.find(filter)
+      .populate("author", "userName fullName")
+      .select("-comments")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize),
+    BlogModel.countDocuments(filter),
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        blogs,
+        pagination: {
+          total,
+          page: pageNum,
+          limit: pageSize,
+          totalPages: Math.ceil(total / pageSize),
+        },
+      },
+      "Admin blogs fetched successfully",
+    ),
+  );
 });
 
 const getAllBlogs = asyncHandler(async (req: Request, res: Response) => {
@@ -67,10 +115,19 @@ const getAllBlogs = asyncHandler(async (req: Request, res: Response) => {
   ]);
 
   return res.status(200).json(
-    new ApiResponse(200, {
-      blogs,
-      pagination: { total, page: pageNum, limit: pageSize, totalPages: Math.ceil(total / pageSize) },
-    }, "Blogs fetched successfully")
+    new ApiResponse(
+      200,
+      {
+        blogs,
+        pagination: {
+          total,
+          page: pageNum,
+          limit: pageSize,
+          totalPages: Math.ceil(total / pageSize),
+        },
+      },
+      "Blogs fetched successfully",
+    ),
   );
 });
 
@@ -80,14 +137,16 @@ const getBlogBySlug = asyncHandler(async (req: Request, res: Response) => {
   const blog = await BlogModel.findOneAndUpdate(
     { slug, status: "published" },
     { $inc: { views: 1 } },
-    { new: true }
+    { new: true },
   ).populate("author", "userName fullName");
 
   if (!blog) {
     throw new ApiError(404, "Blog not found");
   }
 
-  return res.status(200).json(new ApiResponse(200, blog, "Blog fetched successfully"));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, blog, "Blog fetched successfully"));
 });
 
 const getBlogById = asyncHandler(async (req: Request, res: Response) => {
@@ -97,13 +156,18 @@ const getBlogById = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, "Invalid Blog Id");
   }
 
-  const blog = await BlogModel.findById(id).populate("author", "userName fullName");
+  const blog = await BlogModel.findById(id).populate(
+    "author",
+    "userName fullName",
+  );
 
   if (!blog) {
     throw new ApiError(404, "Blog not found");
   }
 
-  return res.status(200).json(new ApiResponse(200, blog, "Blog fetched successfully"));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, blog, "Blog fetched successfully"));
 });
 
 const updateBlog = asyncHandler(async (req: Request, res: Response) => {
@@ -116,13 +180,18 @@ const updateBlog = asyncHandler(async (req: Request, res: Response) => {
   const { slug, ...updateData } = req.body;
   if (slug) throw new ApiError(400, "Slug cannot be modified directly");
 
-  const blog = await BlogModel.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
+  const blog = await BlogModel.findByIdAndUpdate(id, updateData, {
+    new: true,
+    runValidators: true,
+  });
 
   if (!blog) {
     throw new ApiError(404, "Blog not found");
   }
 
-  return res.status(200).json(new ApiResponse(200, blog, "Blog updated successfully"));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, blog, "Blog updated successfully"));
 });
 
 const deleteBlog = asyncHandler(async (req: Request, res: Response) => {
@@ -138,7 +207,9 @@ const deleteBlog = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(404, "Blog not found");
   }
 
-  return res.status(200).json(new ApiResponse(200, null, "Blog deleted successfully"));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Blog deleted successfully"));
 });
 
 const publishBlog = asyncHandler(async (req: Request, res: Response) => {
@@ -159,7 +230,15 @@ const publishBlog = asyncHandler(async (req: Request, res: Response) => {
 
   await blog.save();
 
-  return res.status(200).json(new ApiResponse(200, blog, `Blog ${isPublishing ? "published" : "unpublished"} successfully`));
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        blog,
+        `Blog ${isPublishing ? "published" : "unpublished"} successfully`,
+      ),
+    );
 });
 
 const searchBlogs = asyncHandler(async (req: Request, res: Response) => {
@@ -189,10 +268,19 @@ const searchBlogs = asyncHandler(async (req: Request, res: Response) => {
   ]);
 
   return res.status(200).json(
-    new ApiResponse(200, {
-      blogs,
-      pagination: { total, page: pageNum, limit: pageSize, totalPages: Math.ceil(total / pageSize) },
-    }, "Search results fetched successfully")
+    new ApiResponse(
+      200,
+      {
+        blogs,
+        pagination: {
+          total,
+          page: pageNum,
+          limit: pageSize,
+          totalPages: Math.ceil(total / pageSize),
+        },
+      },
+      "Search results fetched successfully",
+    ),
   );
 });
 
@@ -227,7 +315,9 @@ const addComment = asyncHandler(async (req: Request, res: Response) => {
 
   await blog.save();
 
-  return res.status(201).json(new ApiResponse(201, blog.comments, "Comment added successfully"));
+  return res
+    .status(201)
+    .json(new ApiResponse(201, blog.comments, "Comment added successfully"));
 });
 
 const uploadBlogImages = asyncHandler(async (req: Request, res: Response) => {
@@ -242,15 +332,21 @@ const uploadBlogImages = asyncHandler(async (req: Request, res: Response) => {
   for (const file of files) {
     const uploaded = await uploadOnCloudinary(file.buffer);
     if (uploaded?.secure_url) {
-      uploadedImages.push({ url: uploaded.secure_url, public_id: uploaded.public_id });
+      uploadedImages.push({
+        url: uploaded.secure_url,
+        public_id: uploaded.public_id,
+      });
     }
   }
 
-  return res.status(200).json(new ApiResponse(200, uploadedImages, "Images uploaded successfully"));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, uploadedImages, "Images uploaded successfully"));
 });
 
 export {
   createBlog,
+  getAdminBlogs,
   getAllBlogs,
   getBlogBySlug,
   getBlogById,
