@@ -11,6 +11,7 @@ import productRouter from "./routes/product.routes";
 import orderRouter from "./routes/order.routes";
 import categoryRouter from "./routes/category.routes";
 import sellerRouter from "./routes/seller.routes";
+import blogRouter from "./routes/blog.routes";
 
 connectDB();
 
@@ -40,6 +41,7 @@ app.use("/api/v1/products", productRouter);
 app.use("/api/v1/orders", orderRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/sellers", sellerRouter);
+app.use("/api/v1/blogs", blogRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

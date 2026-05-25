@@ -28,7 +28,9 @@ export async function verifyAdmin(
         payload.email
       )
     ) {
-      req.user = { email: payload.email } as IUser;
+      const dbUser = await User.findOne({ email: payload.email });
+      if (!dbUser) return res.status(403).json({ error: "Admin user not found in DB" });
+      req.user = dbUser;
       return next();
     }
 
