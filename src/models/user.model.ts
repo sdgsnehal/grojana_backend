@@ -13,6 +13,8 @@ export interface IUser extends Document {
   password: string;
   refreshToken?: string;
   addresses: Types.ObjectId[];
+  resetPasswordCode?: string;
+  resetPasswordExpiry?: Date;
 
   isPasswordCorrect(password: string): Promise<boolean>;
   generateAccessToken(): string;
@@ -56,6 +58,14 @@ const userSchema = new Schema<IUser>(
     },
     refreshToken: {
       type: String,
+    },
+    resetPasswordCode: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpiry: {
+      type: Date,
+      select: false,
     },
     addresses: [
       {

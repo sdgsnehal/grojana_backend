@@ -6,6 +6,7 @@ import { ApiError } from "../utils/ApiError";
 import { User } from "../models/user.model";
 import { ApiResponse } from "../utils/Apiresponse";
 import { Address } from "../models/address.model";
+import { sendResetPasswordEmail } from "../utils/sendMail";
 
 // Helper to generate both tokens
 const generateAccessTokenAndRefreshToken = async (
@@ -265,6 +266,56 @@ const updateAddress = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .json(new ApiResponse(200, updatedAddress, "Address updated successfully"));
 });
+const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email?.trim()) throw new ApiError(400, "Email is required");
+
+  const user = await User.findOne({ email: email.trim().toLowerCase() });
+  if (!user) throw new ApiError(404, "User not found");
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+  user.resetPasswordCode = code;
+  user.resetPasswordExpiry = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save({ validateBeforeSave: false });
+
+  await sendResetPasswordEmail(user.email, code);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password reset code sent to email"));
+});
+
+const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email, code, newPassword } = req.body;
+  if (!email?.trim() || !code?.trim() || !newPassword?.trim()) {
+    throw new ApiError(400, "Email, code and new password are required");
+  }
+
+  const user = await User.findOne({
+    email: email.trim().toLowerCase(),
+  }).select("+resetPasswordCode +resetPasswordExpiry");
+  if (!user) throw new ApiError(404, "User not found");
+
+  if (
+    !user.resetPasswordCode ||
+    user.resetPasswordCode !== code ||
+    !user.resetPasswordExpiry ||
+    user.resetPasswordExpiry < new Date()
+  ) {
+    throw new ApiError(400, "Invalid or expired reset code");
+  }
+
+  user.password = newPassword;
+  user.resetPasswordCode = undefined;
+  user.resetPasswordExpiry = undefined;
+  await user.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password reset successfully"));
+});
+
 const deleteAddress = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?._id;
   const { addressId } = req.params;
@@ -330,4 +381,6 @@ export {
   updateAddress,
   deleteAddress,
   updateUserDetails,
+  forgotPassword,
+  resetPassword,
 };
