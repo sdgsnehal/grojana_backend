@@ -60,7 +60,8 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
           orderNumber: order.orderNumber,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Razorpay order creation failed:", error?.error || error);
       await OrderModel.findByIdAndDelete(order._id);
       throw new ApiError(500, "Failed to create Razorpay order");
     }

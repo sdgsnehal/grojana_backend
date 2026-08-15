@@ -265,6 +265,28 @@ const updateAddress = asyncHandler(async (req: Request, res: Response) => {
     .status(200)
     .json(new ApiResponse(200, updatedAddress, "Address updated successfully"));
 });
+const deleteAddress = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  const { addressId } = req.params;
+
+  if (!userId) throw new ApiError(401, "Unauthorized");
+
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
+
+  if (!user.addresses.includes(addressId as any)) {
+    throw new ApiError(403, "This address does not belong to you");
+  }
+
+  await Address.findByIdAndDelete(addressId);
+
+  user.addresses = user.addresses.filter((id) => id.toString() !== addressId);
+  await user.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Address deleted successfully"));
+});
 // (Other handlers like changeCurrentPassword, updateUserAvatar, etc. would be similarly typed)
 const updateUserDetails = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?._id;
@@ -306,5 +328,6 @@ export {
   saveAddress,
   getAddresses,
   updateAddress,
+  deleteAddress,
   updateUserDetails,
 };

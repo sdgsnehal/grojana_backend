@@ -7,6 +7,7 @@ import {
   saveAddress,
   getAddresses,
   updateAddress,
+  deleteAddress,
   updateUserDetails,
 } from "../controller/user.controller";
 
@@ -19,6 +20,7 @@ router.route("/logout").post(verifyJwt, logoutUser);
 router.route("/save-address").post(verifyJwt, saveAddress);
 router.route("/getaddresses").get(verifyJwt, getAddresses);
 router.route("/address/:addressId").put(verifyJwt, updateAddress);
+router.route("/address/:addressId").delete(verifyJwt, deleteAddress);
 router.route("/update-details").put(verifyJwt, updateUserDetails);
 //secured routes
 
