@@ -10,7 +10,7 @@ import { sendResetPasswordEmail } from "../utils/sendMail";
 
 // Helper to generate both tokens
 const generateAccessTokenAndRefreshToken = async (
-  userId: mongoose.Types.ObjectId
+  userId: mongoose.Types.ObjectId,
 ): Promise<{ accessToken: string; refreshToken: string }> => {
   try {
     const user = await User.findById(userId);
@@ -50,7 +50,7 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
   });
 
   const createdUser = await User.findById(newUser._id).select(
-    "-password -refreshToken"
+    "-password -refreshToken",
   );
 
   if (!createdUser) {
@@ -105,7 +105,7 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
     await generateAccessTokenAndRefreshToken(user._id);
 
   const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken"
+    "-password -refreshToken",
   );
 
   const options = { httpOnly: true, secure: true };
@@ -118,8 +118,8 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
       new ApiResponse(
         200,
         { user: loggedInUser, accessToken, refreshToken },
-        "User logged in successfully"
-      )
+        "User logged in successfully",
+      ),
     );
 });
 
@@ -135,7 +135,7 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
   try {
     const decoded = jwt.verify(
       incomingRefreshToken,
-      process.env.REFRESH_TOKEN_SECRET as string
+      process.env.REFRESH_TOKEN_SECRET as string,
     ) as JwtPayload & { _id: string };
 
     const user = await User.findById(decoded._id);
@@ -160,8 +160,8 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
         new ApiResponse(
           200,
           { accessToken, refreshToken: newRefreshToken },
-          "Access token refreshed successfully"
-        )
+          "Access token refreshed successfully",
+        ),
       );
   } catch (error: any) {
     throw new ApiError(401, error?.message || "Invalid refresh token");
@@ -173,7 +173,7 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
   await User.findByIdAndUpdate(
     req.user?._id,
     { $set: { refreshToken: undefined } },
-    { new: true }
+    { new: true },
   );
 
   const options = { httpOnly: true, secure: true };
@@ -233,7 +233,7 @@ const getAddresses = asyncHandler(async (req: Request, res: Response) => {
   return res
     .status(200)
     .json(
-      new ApiResponse(200, user.addresses, "Addresses fetched successfully")
+      new ApiResponse(200, user.addresses, "Addresses fetched successfully"),
     );
 });
 const updateAddress = asyncHandler(async (req: Request, res: Response) => {
@@ -255,7 +255,7 @@ const updateAddress = asyncHandler(async (req: Request, res: Response) => {
   const updatedAddress = await Address.findByIdAndUpdate(
     addressId,
     { name, mobile, streetAddress, address, city, state, zip },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
 
   if (!updatedAddress) {
@@ -309,7 +309,7 @@ const resetPassword = asyncHandler(async (req: Request, res: Response) => {
   user.password = newPassword;
   user.resetPasswordCode = undefined;
   user.resetPasswordExpiry = undefined;
-  await user.save();
+  await user.save({ validateBeforeSave: false });
 
   return res
     .status(200)
@@ -348,7 +348,7 @@ const updateUserDetails = asyncHandler(async (req: Request, res: Response) => {
   if (!fullName && !phone && !gender) {
     throw new ApiError(
       400,
-      "At least one field (fullName, phone, or gender) is required"
+      "At least one field (fullName, phone, or gender) is required",
     );
   }
 
@@ -360,7 +360,7 @@ const updateUserDetails = asyncHandler(async (req: Request, res: Response) => {
   const user = await User.findByIdAndUpdate(
     userId,
     { $set: updateData },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   ).select("-password -refreshToken");
 
   if (!user) {
