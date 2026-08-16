@@ -279,7 +279,7 @@ const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
   user.resetPasswordExpiry = new Date(Date.now() + 10 * 60 * 1000);
   await user.save({ validateBeforeSave: false });
 
-  await sendResetPasswordEmail(user.email, code);
+  await sendResetPasswordEmail(user.email, code, user.fullName || user.userName);
 
   return res
     .status(200)
