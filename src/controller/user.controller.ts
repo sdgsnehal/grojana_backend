@@ -6,6 +6,7 @@ import { ApiError } from "../utils/ApiError";
 import { User } from "../models/user.model";
 import { ApiResponse } from "../utils/Apiresponse";
 import { Address } from "../models/address.model";
+import { ProductModel } from "../models/product.model";
 import { sendResetPasswordEmail } from "../utils/sendMail";
 
 // Helper to generate both tokens
@@ -217,7 +218,7 @@ const saveAddress = asyncHandler(async (req: Request, res: Response) => {
 
   // Push into user
   user.addresses.push(newAddress._id);
-  await user.save();
+  await user.save({ validateBeforeSave: false });
 
   return res
     .status(201)
@@ -332,12 +333,63 @@ const deleteAddress = asyncHandler(async (req: Request, res: Response) => {
   await Address.findByIdAndDelete(addressId);
 
   user.addresses = user.addresses.filter((id) => id.toString() !== addressId);
-  await user.save();
+  await user.save({ validateBeforeSave: false });
 
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "Address deleted successfully"));
 });
+const addToWishlist = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  const { productId } = req.params;
+
+  if (!userId) throw new ApiError(401, "Unauthorized");
+
+  const product = await ProductModel.findById(productId);
+  if (!product) throw new ApiError(404, "Product not found");
+
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
+
+  if (!user.wishlist.some((id) => id.toString() === productId)) {
+    user.wishlist.push(product._id as mongoose.Types.ObjectId);
+    await user.save({ validateBeforeSave: false });
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user.wishlist, "Product added to wishlist"));
+});
+
+const removeFromWishlist = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  const { productId } = req.params;
+
+  if (!userId) throw new ApiError(401, "Unauthorized");
+
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
+
+  user.wishlist = user.wishlist.filter((id) => id.toString() !== productId);
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user.wishlist, "Product removed from wishlist"));
+});
+
+const getWishlist = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+  if (!userId) throw new ApiError(401, "Unauthorized");
+
+  const user = await User.findById(userId).populate("wishlist");
+  if (!user) throw new ApiError(404, "User not found");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user.wishlist, "Wishlist fetched successfully"));
+});
+
 // (Other handlers like changeCurrentPassword, updateUserAvatar, etc. would be similarly typed)
 const updateUserDetails = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?._id;
@@ -383,4 +435,7 @@ export {
   updateUserDetails,
   forgotPassword,
   resetPassword,
+  addToWishlist,
+  removeFromWishlist,
+  getWishlist,
 };

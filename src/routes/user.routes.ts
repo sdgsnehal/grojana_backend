@@ -11,6 +11,9 @@ import {
   updateUserDetails,
   forgotPassword,
   resetPassword,
+  addToWishlist,
+  removeFromWishlist,
+  getWishlist,
 } from "../controller/user.controller";
 
 import { verifyJwt } from "../middleware/auth.middleware";
@@ -26,6 +29,9 @@ router.route("/getaddresses").get(verifyJwt, getAddresses);
 router.route("/address/:addressId").put(verifyJwt, updateAddress);
 router.route("/address/:addressId").delete(verifyJwt, deleteAddress);
 router.route("/update-details").put(verifyJwt, updateUserDetails);
+router.route("/wishlist").get(verifyJwt, getWishlist);
+router.route("/wishlist/:productId").post(verifyJwt, addToWishlist);
+router.route("/wishlist/:productId").delete(verifyJwt, removeFromWishlist);
 //secured routes
 
 export default router;

@@ -13,6 +13,7 @@ export interface IUser extends Document {
   password: string;
   refreshToken?: string;
   addresses: Types.ObjectId[];
+  wishlist: Types.ObjectId[];
   resetPasswordCode?: string;
   resetPasswordExpiry?: Date;
 
@@ -71,6 +72,12 @@ const userSchema = new Schema<IUser>(
       {
         type: Schema.Types.ObjectId,
         ref: "Address",
+      },
+    ],
+    wishlist: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Product",
       },
     ],
   },
