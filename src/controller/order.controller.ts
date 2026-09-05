@@ -7,6 +7,7 @@ import { ApiResponse } from "../utils/Apiresponse";
 import { OrderModel, IOrder } from "../models/order.model";
 import { User } from "../models/user.model";
 import { sendOrderConfirmationEmail } from "../utils/sendMail";
+import { sendOrderConfirmationWhatsapp } from "../utils/sendWhatsapp";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -81,6 +82,16 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
       );
     } catch (error) {
       console.error("Order confirmation email failed:", error);
+    }
+
+    try {
+      await sendOrderConfirmationWhatsapp(
+        populatedOrder.shippingAddress.mobile,
+        req.user!.fullName || req.user!.userName,
+        populatedOrder as any
+      );
+    } catch (error) {
+      console.error("Order confirmation WhatsApp failed:", error);
     }
   }
 
