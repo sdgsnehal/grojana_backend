@@ -269,6 +269,24 @@ const updateProduct = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, updatedProduct, "Product updated successfully"));
 });
 
+const deleteProduct = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (!id || id.length < 12) {
+    throw new ApiError(400, "Invalid Product Id");
+  }
+
+  const deletedProduct = await ProductModel.findByIdAndDelete(id);
+
+  if (!deletedProduct) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, deletedProduct, "Product deleted successfully"));
+});
+
 const addReview = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const { rating, comment } = req.body;
@@ -356,5 +374,6 @@ export {
   uploadProductImages,
   getProductById,
   updateProduct,
+  deleteProduct,
   addReview,
 };

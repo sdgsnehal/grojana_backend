@@ -7,6 +7,7 @@ import {
   getProductById,
   uploadProductImages,
   updateProduct,
+  deleteProduct,
   addReview,
 } from "../controller/product.controller";
 import { upload } from "../middleware/multer.middleware";
@@ -30,6 +31,7 @@ router.route("/:id").get((req, res, next) => {
   getProductById(req, res, next);
 });
 router.route("/:id").put(verifyAdmin, updateProduct);
+router.route("/:id").delete(verifyAdmin, deleteProduct);
 router.route("/:id/review").post(verifyJwt, (req, res, next) => {
   upload.array("images", 5)(req, res, (err) => {
     if (err) return next(err);
