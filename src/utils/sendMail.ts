@@ -124,7 +124,7 @@ export const sendOrderConfirmationEmail = async (
   order: OrderEmailDetails
 ) => {
   await resend.emails.send({
-    from: process.env.EMAIL_FROM || "onboarding@resend.dev",
+    from: process.env.EMAIL_FROM || "Grojana <noreply@grozanafarms.com>",
     to: email,
     subject: `Order confirmed — #${order.orderNumber}`,
     html: orderConfirmationHtml(name, order),
@@ -138,7 +138,7 @@ export const sendResetPasswordEmail = async (
   name = "there",
 ) => {
   await resend.emails.send({
-    from: process.env.EMAIL_FROM || "onboarding@resend.dev",
+    from: process.env.EMAIL_FROM || "Grojana <noreply@grozanafarms.com>",
     to: email,
     subject: "Reset your password",
     html: resetPasswordHtml(name, code),

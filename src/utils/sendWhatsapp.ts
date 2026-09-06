@@ -36,6 +36,25 @@ const toWhatsappPhone = (mobile: number): string => {
   return digits.length === 10 ? `${countryCode}${digits}` : digits;
 };
 
+const formatOrderItems = (items: WhatsappOrderItem[]): string =>
+  items
+    .map(
+      (item) =>
+        `${item.quantity}x ${item.product?.name || "Item"} (${item.weight})`,
+    )
+    .join(", ");
+
+const estimatedDeliveryDate = (): string => {
+  const days = Number(process.env.WHATSAPP_ORDER_DELIVERY_DAYS || "5");
+  const date = new Date();
+  date.setDate(date.getDate() + (Number.isFinite(days) ? days : 5));
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 export const sendOrderConfirmationWhatsapp = async (
   mobile: number,
   name: string,
@@ -53,8 +72,12 @@ export const sendOrderConfirmationWhatsapp = async (
     );
   }
 
-  // TODO: once a real template is approved in Meta Business Manager, update this
-  // parameters array to match its actual {{1}}, {{2}}, ... variable count/order.
+  // Matches the approved template body:
+  //   Hi {{customer_name}}, thank you for your order!
+  //   Order ID: {{order_id}}
+  //   Items: {{order_items}}
+  //   Total: {{order_total}}
+  //   Estimated delivery: {{delivery_date}}
   const payload = {
     messaging_product: "whatsapp",
     to: toWhatsappPhone(mobile),
@@ -66,9 +89,27 @@ export const sendOrderConfirmationWhatsapp = async (
         {
           type: "body",
           parameters: [
-            { type: "text", text: name },
-            { type: "text", text: order.orderNumber },
-            { type: "text", text: `₹${order.totalAmount}` },
+            { type: "text", parameter_name: "customer_name", text: name },
+            {
+              type: "text",
+              parameter_name: "order_id",
+              text: order.orderNumber,
+            },
+            {
+              type: "text",
+              parameter_name: "order_items",
+              text: formatOrderItems(order.items),
+            },
+            {
+              type: "text",
+              parameter_name: "order_total",
+              text: `₹${order.totalAmount}`,
+            },
+            {
+              type: "text",
+              parameter_name: "delivery_date",
+              text: estimatedDeliveryDate(),
+            },
           ],
         },
       ],
