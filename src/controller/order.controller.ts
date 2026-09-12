@@ -5,7 +5,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/Apiresponse";
 import { OrderModel, IOrder } from "../models/order.model";
-import { User } from "../models/user.model";
+import { User, IUser } from "../models/user.model";
 import { sendOrderConfirmationEmail } from "../utils/sendMail";
 import { sendOrderConfirmationWhatsapp } from "../utils/sendWhatsapp";
 
@@ -13,6 +13,28 @@ const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
   key_secret: process.env.RAZORPAY_KEY_SECRET!,
 });
+
+async function sendOrderNotifications(user: IUser, order: IOrder) {
+  try {
+    await sendOrderConfirmationEmail(
+      user.email,
+      user.fullName || user.userName,
+      order as any
+    );
+  } catch (error) {
+    console.error("Order confirmation email failed:", error);
+  }
+
+  try {
+    await sendOrderConfirmationWhatsapp(
+      order.shippingAddress.mobile,
+      user.fullName || user.userName,
+      order as any
+    );
+  } catch (error) {
+    console.error("Order confirmation WhatsApp failed:", error);
+  }
+}
 
 const createOrder = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?._id;
@@ -73,26 +95,10 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
     "items.product"
   );
 
-  if (populatedOrder) {
-    try {
-      await sendOrderConfirmationEmail(
-        req.user!.email,
-        req.user!.fullName || req.user!.userName,
-        populatedOrder as any
-      );
-    } catch (error) {
-      console.error("Order confirmation email failed:", error);
-    }
-
-    try {
-      await sendOrderConfirmationWhatsapp(
-        populatedOrder.shippingAddress.mobile,
-        req.user!.fullName || req.user!.userName,
-        populatedOrder as any
-      );
-    } catch (error) {
-      console.error("Order confirmation WhatsApp failed:", error);
-    }
+  // For online payment, wait until verifyPayment confirms the charge went through
+  // before notifying the user — otherwise a failed/abandoned payment still gets a confirmation.
+  if (populatedOrder && paymentMethod !== "online_payment") {
+    await sendOrderNotifications(req.user!, populatedOrder as any);
   }
 
   return res.status(201).json(
@@ -163,6 +169,10 @@ const verifyPayment = asyncHandler(async (req: Request, res: Response) => {
       },
       { new: true }
     ).populate("items.product");
+
+    if (updatedOrder && req.user) {
+      await sendOrderNotifications(req.user, updatedOrder);
+    }
 
     return res
       .status(200)
