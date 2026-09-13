@@ -113,7 +113,7 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
     "-password -refreshToken",
   );
 
-  const options = { httpOnly: true, secure: true };
+  const options = { httpOnly: true, secure: true, sameSite: "none" as const };
 
   return res
     .status(200)
@@ -162,7 +162,7 @@ const adminGoogleLogin = asyncHandler(async (req: Request, res: Response) => {
     "-password -refreshToken",
   );
 
-  const options = { httpOnly: true, secure: true };
+  const options = { httpOnly: true, secure: true, sameSite: "none" as const };
 
   return res
     .status(200)
@@ -204,7 +204,7 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
     const { accessToken, refreshToken: newRefreshToken } =
       await generateAccessTokenAndRefreshToken(user._id);
 
-    const options = { httpOnly: true, secure: true };
+    const options = { httpOnly: true, secure: true, sameSite: "none" as const };
 
     return res
       .status(200)
@@ -230,7 +230,7 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
     { new: true },
   );
 
-  const options = { httpOnly: true, secure: true };
+  const options = { httpOnly: true, secure: true, sameSite: "none" as const };
 
   return res
     .status(200)
