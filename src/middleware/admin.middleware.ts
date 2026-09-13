@@ -1,40 +1,41 @@
 import { Request, Response, NextFunction } from "express";
-import { OAuth2Client } from "google-auth-library";
-import { User, IUser } from "../models/user.model";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import { User } from "../models/user.model";
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+export const ADMIN_EMAILS = ["sdgsnehal@gmail.com", "ankitshanivare@gmail.com"];
+
+interface DecodedToken extends JwtPayload {
+  _id: string;
+  email: string;
+}
 
 export async function verifyAdmin(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const authHeader = req.headers["authorization"];
-  if (!authHeader) return res.status(401).json({ error: "No token" });
-
-  const token = authHeader.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Token missing" });
+  const token =
+    req.cookies?.accessToken ||
+    req.headers?.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "No token" });
 
   try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID, // 👈 must match
-    });
+    const decoded = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET as string
+    ) as DecodedToken;
 
-    const payload = ticket.getPayload();
-    if (
-      payload?.email &&
-      ["sdgsnehal@gmail.com", "ankitshanivare@gmail.com"].includes(
-        payload.email
-      )
-    ) {
-      const dbUser = await User.findOne({ email: payload.email });
-      if (!dbUser) return res.status(403).json({ error: "Admin user not found in DB" });
-      req.user = dbUser;
-      return next();
+    if (!ADMIN_EMAILS.includes(decoded.email)) {
+      return res.status(403).json({ error: "Not an admin" });
     }
 
-    return res.status(403).json({ error: "Not an admin" });
+    const dbUser = await User.findById(decoded._id).select(
+      "-password -refreshToken"
+    );
+    if (!dbUser) return res.status(403).json({ error: "Admin user not found in DB" });
+
+    req.user = dbUser;
+    return next();
   } catch (err) {
     return res.status(401).json({ error: "Unauthorized" });
   }
