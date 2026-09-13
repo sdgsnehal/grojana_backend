@@ -27,14 +27,21 @@ interface WhatsappOrderDetails {
 const GRAPH_API_VERSION = process.env.WHATSAPP_API_VERSION || "v22.0";
 const GRAPH_API_BASE = "https://graph.facebook.com";
 
-// shippingAddress.mobile is stored as a bare Number with no country code.
+// shippingAddress.mobile / seller.phone are stored without a country code.
 // Defaults to prefixing WHATSAPP_DEFAULT_COUNTRY_CODE onto 10-digit numbers;
 // revisit once real customer number formats are confirmed.
-const toWhatsappPhone = (mobile: number): string => {
+const toWhatsappPhone = (mobile: number | string): string => {
   const digits = String(mobile).replace(/\D/g, "");
   const countryCode = process.env.WHATSAPP_DEFAULT_COUNTRY_CODE || "91";
   return digits.length === 10 ? `${countryCode}${digits}` : digits;
 };
+
+const formatOrderDate = (date: Date): string =>
+  date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
 const formatOrderItems = (items: WhatsappOrderItem[]): string =>
   items
@@ -110,6 +117,74 @@ export const sendOrderConfirmationWhatsapp = async (
               parameter_name: "delivery_date",
               text: estimatedDeliveryDate(),
             },
+          ],
+        },
+      ],
+    },
+  };
+
+  const response = await fetch(
+    `${GRAPH_API_BASE}/${GRAPH_API_VERSION}/${phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`WhatsApp API error (${response.status}): ${errorBody}`);
+  }
+
+  return response.json();
+};
+
+// Matches the approved template body (positional, no parameter_name):
+//   Hello {{1}},
+//   You have received a new order on Grojana Farms.
+//   Item: {{2}}  Quantity: {{3}}  Order Amount: ₹{{4}}
+//   Order Date: {{5}}  Order ID: {{6}}
+export const sendSellerNewOrderWhatsapp = async (
+  phone: string,
+  sellerName: string,
+  itemsText: string,
+  quantity: number,
+  orderAmount: number,
+  orderNumber: string,
+) => {
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const templateName =
+    process.env.WHATSAPP_SELLER_ORDER_TEMPLATE_NAME;
+  const templateLang = process.env.WHATSAPP_ORDER_TEMPLATE_LANG || "en";
+
+  if (!accessToken || !phoneNumberId) {
+    throw new Error(
+      "WhatsApp is not configured: WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID missing",
+    );
+  }
+
+  const payload = {
+    messaging_product: "whatsapp",
+    to: toWhatsappPhone(phone),
+    type: "template",
+    template: {
+      name: templateName,
+      language: { code: templateLang },
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: sellerName },
+            { type: "text", text: itemsText },
+            { type: "text", text: String(quantity) },
+            { type: "text", text: String(orderAmount) },
+            { type: "text", text: formatOrderDate(new Date()) },
+            { type: "text", text: orderNumber },
           ],
         },
       ],

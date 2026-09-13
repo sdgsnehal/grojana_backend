@@ -8,6 +8,10 @@ import { ApiResponse } from "../utils/Apiresponse";
 import { Address } from "../models/address.model";
 import { ProductModel } from "../models/product.model";
 import { sendResetPasswordEmail } from "../utils/sendMail";
+import { OAuth2Client } from "google-auth-library";
+import { ADMIN_EMAILS } from "../middleware/admin.middleware";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Helper to generate both tokens
 const generateAccessTokenAndRefreshToken = async (
@@ -109,7 +113,7 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
     "-password -refreshToken",
   );
 
-  const options = { httpOnly: true, secure: true };
+  const options = { httpOnly: true, secure: true, sameSite: "none" as const };
 
   return res
     .status(200)
@@ -120,6 +124,55 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
         200,
         { user: loggedInUser, accessToken, refreshToken },
         "User logged in successfully",
+      ),
+    );
+});
+
+// Admin login via Google ID token
+const adminGoogleLogin = asyncHandler(async (req: Request, res: Response) => {
+  const { idToken } = req.body;
+  if (!idToken) {
+    throw new ApiError(400, "idToken is required");
+  }
+
+  let email: string | undefined;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    email = ticket.getPayload()?.email;
+  } catch (error) {
+    throw new ApiError(401, "Invalid Google token");
+  }
+
+  if (!email || !ADMIN_EMAILS.includes(email)) {
+    throw new ApiError(403, "Not an admin");
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(404, "Admin user not found in DB");
+  }
+
+  const { accessToken, refreshToken } =
+    await generateAccessTokenAndRefreshToken(user._id);
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken",
+  );
+
+  const options = { httpOnly: true, secure: true, sameSite: "none" as const };
+
+  return res
+    .status(200)
+    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        { user: loggedInUser, accessToken, refreshToken },
+        "Admin logged in successfully",
       ),
     );
 });
@@ -151,7 +204,7 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
     const { accessToken, refreshToken: newRefreshToken } =
       await generateAccessTokenAndRefreshToken(user._id);
 
-    const options = { httpOnly: true, secure: true };
+    const options = { httpOnly: true, secure: true, sameSite: "none" as const };
 
     return res
       .status(200)
@@ -177,7 +230,7 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
     { new: true },
   );
 
-  const options = { httpOnly: true, secure: true };
+  const options = { httpOnly: true, secure: true, sameSite: "none" as const };
 
   return res
     .status(200)
@@ -426,6 +479,7 @@ const updateUserDetails = asyncHandler(async (req: Request, res: Response) => {
 export {
   registerUser,
   loginUser,
+  adminGoogleLogin,
   logoutUser,
   refreshAccessToken,
   saveAddress,
