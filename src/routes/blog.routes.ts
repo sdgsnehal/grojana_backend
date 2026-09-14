@@ -17,7 +17,6 @@ import { verifyAdmin } from "../middleware/admin.middleware";
 import { verifyJwt } from "../middleware/auth.middleware";
 
 const router = Router();
-console.log("blog routes loaded");
 // Public
 router.route("/get-all").get(getAllBlogs);
 router.route("/search").get(searchBlogs);

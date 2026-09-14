@@ -101,7 +101,6 @@ userSchema.methods.isPasswordCorrect = async function (password: string) {
   if (!password || !this.password) {
     return false;
   }
-  console.log(password, this.password);
   return await bcrypt.compare(password, this.password);
 };
 
