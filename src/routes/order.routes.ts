@@ -12,6 +12,7 @@ import {
   getOrderStats,
 } from "../controller/order.controller";
 import { verifyJwt } from "../middleware/auth.middleware";
+import { verifyAdmin } from "../middleware/admin.middleware";
 
 const router = Router();
 
@@ -22,11 +23,11 @@ router.route("/my-orders").get(verifyJwt, getOrders);
 router.route("/:orderId").get(verifyJwt, getOrderById);
 router.route("/:orderId/cancel").put(verifyJwt, cancelOrder);
 
-// Admin routes (these would typically have admin middleware)
-router.route("/admin/all").get(getAllOrders);
-router.route("/admin/stats").get(getOrderStats);
-router.route("/admin/:orderId").get(getOrderByIdAdmin);
-router.route("/status/:status").get(getOrdersByStatus);
-router.route("/:orderId/update-status").put(updateOrderStatus);
+// Admin routes
+router.route("/admin/all").get(verifyAdmin, getAllOrders);
+router.route("/admin/stats").get(verifyAdmin, getOrderStats);
+router.route("/admin/:orderId").get(verifyAdmin, getOrderByIdAdmin);
+router.route("/status/:status").get(verifyAdmin, getOrdersByStatus);
+router.route("/:orderId/update-status").put(verifyAdmin, updateOrderStatus);
 
 export default router;
