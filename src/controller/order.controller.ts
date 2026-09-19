@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/Apiresponse";
@@ -11,6 +12,12 @@ import {
   sendOrderConfirmationWhatsapp,
   sendSellerNewOrderWhatsapp,
 } from "../utils/sendWhatsapp";
+import {
+  formatConsigneeAddress,
+  formatParcelContents,
+  buildShippingReportWorkbook,
+  ShippingReportRow,
+} from "../utils/shippingReport.util";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -498,6 +505,79 @@ const getOrderStats = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const generateShippingReport = asyncHandler(
+  async (req: Request, res: Response) => {
+    const pickupAddressId = process.env.PICKUP_ADDRESS_ID;
+    if (!pickupAddressId) {
+      throw new ApiError(
+        500,
+        "Pickup address ID is not configured",
+        [],
+        "",
+        "PICKUP_ADDRESS_ID_MISSING"
+      );
+    }
+
+    const { orderIds } = req.body;
+    if (
+      !Array.isArray(orderIds) ||
+      orderIds.length === 0 ||
+      !orderIds.every((id) => mongoose.isValidObjectId(id))
+    ) {
+      throw new ApiError(
+        400,
+        "Invalid order ID(s) provided",
+        [],
+        "",
+        "INVALID_ORDER_IDS"
+      );
+    }
+
+    const orders = await OrderModel.find({
+      _id: { $in: orderIds },
+      orderStatus: { $in: ["confirmed", "processing"] },
+      shippingReportGenerated: { $ne: true },
+    }).populate("items.product");
+
+    if (orders.length === 0) {
+      throw new ApiError(
+        404,
+        "No eligible orders found",
+        [],
+        "",
+        "NO_ELIGIBLE_ORDERS"
+      );
+    }
+
+    const rows: ShippingReportRow[] = orders.map((order) => ({
+      pickupAddressId,
+      consigneeName: order.shippingAddress.name,
+      consigneeAddress: formatConsigneeAddress(order.shippingAddress),
+      consigneePincode: order.shippingAddress.zip,
+      consigneeMobile: order.shippingAddress.mobile,
+      parcelValue: order.totalAmount,
+      parcelContentsDescription: formatParcelContents(order.items),
+    }));
+
+    const buffer = await buildShippingReportWorkbook(rows);
+
+    await OrderModel.updateMany(
+      { _id: { $in: orders.map((order) => order._id) } },
+      { shippingReportGenerated: true, shippingReportGeneratedAt: new Date() }
+    );
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="shipping-report-${Date.now()}.xlsx"`
+    );
+    return res.send(buffer);
+  }
+);
+
 export {
   createOrder,
   verifyPayment,
@@ -509,4 +589,5 @@ export {
   getAllOrders,
   getOrderByIdAdmin,
   getOrderStats,
+  generateShippingReport,
 };

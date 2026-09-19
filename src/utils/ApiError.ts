@@ -3,12 +3,14 @@ class ApiError extends Error {
   public data: any;
   public success: boolean;
   public errors: any[];
+  public code?: string;
 
   constructor(
     statusCode: number,
     message: string = "Something went wrong",
     errors: any[] = [],
-    stack: string = ""
+    stack: string = "",
+    code?: string
   ) {
     super(message);
 
@@ -16,6 +18,7 @@ class ApiError extends Error {
     this.data = null;
     this.success = false;
     this.errors = errors;
+    this.code = code;
 
     if (stack) {
       this.stack = stack;
