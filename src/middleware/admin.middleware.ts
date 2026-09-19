@@ -17,7 +17,14 @@ export async function verifyAdmin(
   const token =
     req.cookies?.accessToken ||
     req.headers?.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "No token" });
+  if (!token)
+    return res.status(401).json({
+      statusCode: 401,
+      success: false,
+      message: "No token",
+      errors: [],
+      data: null,
+    });
 
   try {
     const decoded = jwt.verify(
@@ -26,17 +33,36 @@ export async function verifyAdmin(
     ) as DecodedToken;
 
     if (!ADMIN_EMAILS.includes(decoded.email)) {
-      return res.status(403).json({ error: "Not an admin" });
+      return res.status(403).json({
+        statusCode: 403,
+        success: false,
+        message: "Not an admin",
+        errors: [],
+        data: null,
+      });
     }
 
     const dbUser = await User.findById(decoded._id).select(
       "-password -refreshToken"
     );
-    if (!dbUser) return res.status(403).json({ error: "Admin user not found in DB" });
+    if (!dbUser)
+      return res.status(403).json({
+        statusCode: 403,
+        success: false,
+        message: "Admin user not found in DB",
+        errors: [],
+        data: null,
+      });
 
     req.user = dbUser;
     return next();
   } catch (err) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return res.status(401).json({
+      statusCode: 401,
+      success: false,
+      message: "Unauthorized",
+      errors: [],
+      data: null,
+    });
   }
 }

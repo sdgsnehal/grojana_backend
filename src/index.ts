@@ -1,5 +1,5 @@
 /// <reference path="./express.d.ts" />
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 dotenv.config();
 import cors from "cors";
@@ -12,6 +12,7 @@ import orderRouter from "./routes/order.routes";
 import categoryRouter from "./routes/category.routes";
 import sellerRouter from "./routes/seller.routes";
 import blogRouter from "./routes/blog.routes";
+import { ApiError } from "./utils/ApiError";
 
 connectDB();
 
@@ -42,6 +43,27 @@ app.use("/api/v1/orders", orderRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/sellers", sellerRouter);
 app.use("/api/v1/blogs", blogRouter);
+
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof ApiError) {
+    return res.status(err.statusCode).json({
+      statusCode: err.statusCode,
+      success: false,
+      message: err.message,
+      errors: err.errors,
+      data: err.data,
+    });
+  }
+
+  console.error(err);
+  return res.status(500).json({
+    statusCode: 500,
+    success: false,
+    message: "Internal Server Error",
+    errors: [],
+    data: null,
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
