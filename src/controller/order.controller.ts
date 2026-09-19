@@ -507,7 +507,7 @@ const getOrderStats = asyncHandler(async (req: Request, res: Response) => {
 
 const generateShippingReport = asyncHandler(
   async (req: Request, res: Response) => {
-    const pickupAddressId = process.env.PICKUP_ADDRESS_ID;
+    const pickupAddressId: string | undefined = process.env.PICKUP_ADDRESS_ID;
     if (!pickupAddressId) {
       throw new ApiError(
         500,
