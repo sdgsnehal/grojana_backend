@@ -30,6 +30,8 @@ export interface IOrder extends Document {
   deliveredAt?: Date;
   cancelledAt?: Date;
   notes?: string;
+  shippingReportGenerated: boolean;
+  shippingReportGeneratedAt?: Date;
 }
 
 const orderItemSchema = new Schema<OrderItem>(
@@ -176,6 +178,14 @@ const orderSchema = new Schema<IOrder>(
     notes: {
       type: String,
       trim: true,
+    },
+    shippingReportGenerated: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    shippingReportGeneratedAt: {
+      type: Date,
     },
   },
   { timestamps: true },
