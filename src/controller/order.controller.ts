@@ -507,17 +507,6 @@ const getOrderStats = asyncHandler(async (req: Request, res: Response) => {
 
 const generateShippingReport = asyncHandler(
   async (req: Request, res: Response) => {
-    const pickupAddressId: string | undefined = process.env.PICKUP_ADDRESS_ID;
-    if (!pickupAddressId) {
-      throw new ApiError(
-        500,
-        "Pickup address ID is not configured",
-        [],
-        "",
-        "PICKUP_ADDRESS_ID_MISSING"
-      );
-    }
-
     const { orderIds } = req.body;
     if (
       !Array.isArray(orderIds) ||
@@ -536,7 +525,6 @@ const generateShippingReport = asyncHandler(
     const orders = await OrderModel.find({
       _id: { $in: orderIds },
       orderStatus: { $in: ["confirmed", "processing"] },
-      shippingReportGenerated: { $ne: true },
     }).populate("items.product");
 
     if (orders.length === 0) {
@@ -550,7 +538,7 @@ const generateShippingReport = asyncHandler(
     }
 
     const rows: ShippingReportRow[] = orders.map((order) => ({
-      pickupAddressId,
+      pickupAddressId: "",
       consigneeName: order.shippingAddress.name,
       consigneeAddress: formatConsigneeAddress(order.shippingAddress),
       consigneePincode: order.shippingAddress.zip,
