@@ -6,6 +6,7 @@ import { ApiError } from "../utils/ApiError";
 import { User, IUser } from "../models/user.model";
 import { ApiResponse } from "../utils/Apiresponse";
 import { ProductModel } from "../models/product.model";
+import { Category } from "../models/category.model";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { v4 as uuidv4 } from "uuid";
 import { OrderModel } from "../models/order.model";
@@ -236,9 +237,19 @@ const getProductById = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(404, "Product not found");
   }
 
+  const categoryDocs = await Category.find(
+    { _id: { $in: product.categories } },
+    "name",
+  );
+
+  const response = {
+    ...product.toObject(),
+    categoryNames: categoryDocs.map((c) => c.name),
+  };
+
   return res
     .status(200)
-    .json(new ApiResponse(200, product, "Product fetched successfully"));
+    .json(new ApiResponse(200, response, "Product fetched successfully"));
 });
 
 const updateProduct = asyncHandler(async (req: Request, res: Response) => {
