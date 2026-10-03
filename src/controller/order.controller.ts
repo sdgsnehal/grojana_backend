@@ -6,6 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/Apiresponse";
 import { OrderModel, IOrder } from "../models/order.model";
+import { computeOrderPricing } from "../utils/orderPricing.util";
 import { User, IUser } from "../models/user.model";
 import { sendOrderConfirmationEmail } from "../utils/sendMail";
 import {
@@ -103,8 +104,8 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, "Payment method is required");
   }
 
-  // Calculate total amount
-  const totalAmount = items.reduce((sum, item) => sum + item.totalPrice, 0);
+  // Compute authoritative pricing from current product data (never trust client prices)
+  const pricing = await computeOrderPricing(items);
 
   // Generate order number
   const orderNumber = `GRJ${Date.now()}${Math.floor(Math.random() * 1000)}`;
@@ -112,8 +113,12 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
   // Create order in database
   const order = await OrderModel.create({
     user: userId,
-    items,
-    totalAmount,
+    items: pricing.items,
+    subtotal: pricing.subtotal,
+    discountAmount: pricing.discountAmount,
+    shippingCost: pricing.shippingCost,
+    taxAmount: pricing.taxAmount,
+    totalAmount: pricing.totalAmount,
     shippingAddress,
     paymentMethod,
     paymentStatus: paymentMethod === "cash_on_delivery" ? "pending" : "pending",
@@ -126,7 +131,7 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
   if (paymentMethod === "online_payment") {
     try {
       razorpayOrder = await razorpay.orders.create({
-        amount: Math.round(totalAmount * 100), // Convert to paise
+        amount: Math.round(pricing.totalAmount * 100), // Convert to paise
         currency: "INR",
         notes: {
           orderId: order._id.toString(),
@@ -162,6 +167,20 @@ const createOrder = asyncHandler(async (req: Request, res: Response) => {
       "Order created successfully"
     )
   );
+});
+
+const quoteOrder = asyncHandler(async (req: Request, res: Response) => {
+  const { items } = req.body;
+
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    throw new ApiError(400, "Items are required");
+  }
+
+  const pricing = await computeOrderPricing(items);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, pricing, "Order quote calculated"));
 });
 
 const verifyPayment = asyncHandler(async (req: Request, res: Response) => {
@@ -568,6 +587,7 @@ const generateShippingReport = asyncHandler(
 
 export {
   createOrder,
+  quoteOrder,
   verifyPayment,
   getOrders,
   getOrderById,

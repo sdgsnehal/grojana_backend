@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createOrder,
+  quoteOrder,
   verifyPayment,
   getOrders,
   getOrderById,
@@ -19,6 +20,7 @@ const router = Router();
 
 // User routes (protected)
 router.route("/create").post(verifyJwt, createOrder);
+router.route("/quote").post(verifyJwt, quoteOrder);
 router.route("/verify-payment").post(verifyJwt, verifyPayment);
 router.route("/my-orders").get(verifyJwt, getOrders);
 router.route("/:orderId").get(verifyJwt, getOrderById);

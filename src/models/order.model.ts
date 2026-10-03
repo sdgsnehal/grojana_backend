@@ -13,6 +13,10 @@ export interface IOrder extends Document {
   _id: Types.ObjectId;
   user: Types.ObjectId;
   items: OrderItem[];
+  subtotal: number;
+  discountAmount: number;
+  shippingCost: number;
+  taxAmount: number;
   totalAmount: number;
   shippingAddress: IAddress;
   paymentMethod: string;
@@ -120,6 +124,29 @@ const orderSchema = new Schema<IOrder>(
         },
         message: "Order must contain at least one item",
       },
+    },
+    subtotal: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    discountAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
+    shippingCost: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
+    taxAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
     },
     totalAmount: {
       type: Number,

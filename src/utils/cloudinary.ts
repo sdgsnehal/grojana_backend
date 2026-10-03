@@ -7,10 +7,13 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const uploadOnCloudinary = (fileBuffer: Buffer): Promise<any> => {
+const uploadOnCloudinary = (
+  fileBuffer: Buffer,
+  folder?: string
+): Promise<any> => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
-      { resource_type: "auto" },
+      { resource_type: "auto", folder },
       (error, result) => {
         if (error) return reject(error);
         resolve(result);
@@ -21,4 +24,7 @@ const uploadOnCloudinary = (fileBuffer: Buffer): Promise<any> => {
     bufferStream.pipe(uploadStream);
   });
 };
-export { uploadOnCloudinary };
+const deleteFromCloudinary = (publicId: string): Promise<any> =>
+  cloudinary.uploader.destroy(publicId);
+
+export { uploadOnCloudinary, deleteFromCloudinary };
