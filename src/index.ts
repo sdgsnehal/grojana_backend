@@ -12,6 +12,7 @@ import orderRouter from "./routes/order.routes";
 import categoryRouter from "./routes/category.routes";
 import sellerRouter from "./routes/seller.routes";
 import blogRouter from "./routes/blog.routes";
+import bannerRouter from "./routes/banner.routes";
 import { ApiError } from "./utils/ApiError";
 
 connectDB();
@@ -43,6 +44,7 @@ app.use("/api/v1/orders", orderRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/sellers", sellerRouter);
 app.use("/api/v1/blogs", blogRouter);
+app.use("/api/v1/banners", bannerRouter);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof ApiError) {
