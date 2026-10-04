@@ -19,6 +19,7 @@ export interface Product extends Document {
   id: string;
   seller: Types.ObjectId;
   name: string;
+  slug?: string;
   image: string[];
   tags: string[];
   rating: number;
@@ -73,6 +74,8 @@ const productSchema = new Schema<Product>(
   {
     seller: { type: Schema.Types.ObjectId, ref: "Seller", required: true },
     name: { type: String, required: true },
+    // sparse: products created before slugs existed have none until the backfill runs
+    slug: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     image: { type: [String], required: true },
     tags: { type: [String], default: [] },
     rating: { type: Number, default: 0 },

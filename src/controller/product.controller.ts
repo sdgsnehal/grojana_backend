@@ -5,11 +5,15 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/ApiError";
 import { User, IUser } from "../models/user.model";
 import { ApiResponse } from "../utils/Apiresponse";
-import { ProductModel } from "../models/product.model";
+import { ProductModel, Product } from "../models/product.model";
 import { Category } from "../models/category.model";
 import { uploadOnCloudinary } from "../utils/cloudinary";
 import { v4 as uuidv4 } from "uuid";
 import { OrderModel } from "../models/order.model";
+import {
+  withUniqueProductSlug,
+  assignMissingProductSlug,
+} from "../utils/slug.util";
 
 const createProduct = asyncHandler(async (req: Request, res: Response) => {
   console.log(req.body, "<-- product data");
@@ -54,32 +58,35 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // ✅ Create new product
-  const newProduct = await ProductModel.create({
-    seller,
-    name,
-    image,
-    tags,
-    rating,
-    reviewCount,
-    description,
-    weights,
-    sku,
-    categories,
-    detailedDescription,
-    inStock,
-    stockText,
-    originalPrice,
-    currentPrice,
-    features,
-    reviews,
-    salePrice,
-    currency,
-    badge,
-    isBestSeller,
-    isOnSale,
-    isPromo,
-    ladduTypes,
-  });
+  const newProduct = await withUniqueProductSlug(name, (slug) =>
+    ProductModel.create({
+      seller,
+      name,
+      slug,
+      image,
+      tags,
+      rating,
+      reviewCount,
+      description,
+      weights,
+      sku,
+      categories,
+      detailedDescription,
+      inStock,
+      stockText,
+      originalPrice,
+      currentPrice,
+      features,
+      reviews,
+      salePrice,
+      currency,
+      badge,
+      isBestSeller,
+      isOnSale,
+      isPromo,
+      ladduTypes,
+    }),
+  );
   console.log("success");
   return res
     .status(201)
@@ -222,6 +229,19 @@ const getProductsByCategory = asyncHandler(async (req: Request, res: Response) =
     .json(new ApiResponse(200, products, `Products in category '${category}' fetched successfully`));
 });
 
+// Product detail payload shared by the by-id and by-slug endpoints
+const withCategoryNames = async (product: Product) => {
+  const categoryDocs = await Category.find(
+    { _id: { $in: product.categories } },
+    "name",
+  );
+
+  return {
+    ...product.toObject(),
+    categoryNames: categoryDocs.map((c) => c.name),
+  };
+};
+
 const getProductById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!id || id.length < 12) {
@@ -237,19 +257,41 @@ const getProductById = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(404, "Product not found");
   }
 
-  const categoryDocs = await Category.find(
-    { _id: { $in: product.categories } },
-    "name",
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        await withCategoryNames(product),
+        "Product fetched successfully",
+      ),
+    );
+});
+
+const getProductBySlug = asyncHandler(async (req: Request, res: Response) => {
+  const slug = req.params.slug?.trim().toLowerCase();
+  if (!slug) {
+    throw new ApiError(400, "Product slug is required");
+  }
+
+  const product = await ProductModel.findOne({ slug }).populate(
+    "seller",
+    "name businessName",
   );
 
-  const response = {
-    ...product.toObject(),
-    categoryNames: categoryDocs.map((c) => c.name),
-  };
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, response, "Product fetched successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        await withCategoryNames(product),
+        "Product fetched successfully",
+      ),
+    );
 });
 
 const updateProduct = asyncHandler(async (req: Request, res: Response) => {
@@ -260,19 +302,28 @@ const updateProduct = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // Remove SKU from request body to prevent it from being updated
-  const { sku, ...updateData } = req.body;
+  // The slug is ignored rather than rejected: clients that send the whole
+  // product back would otherwise fail. It stays fixed once set so shared
+  // and indexed URLs keep working after a rename.
+  const { sku, slug: _slug, ...updateData } = req.body;
 
   if (sku) {
     throw new ApiError(400, "SKU cannot be modified");
   }
 
-  const updatedProduct = await ProductModel.findByIdAndUpdate(id, updateData, {
+  let updatedProduct = await ProductModel.findByIdAndUpdate(id, updateData, {
     new: true,
     runValidators: true,
   });
 
   if (!updatedProduct) {
     throw new ApiError(404, "Product not found");
+  }
+
+  if (!updatedProduct.slug) {
+    updatedProduct =
+      (await assignMissingProductSlug(id, updatedProduct.name)) ??
+      updatedProduct;
   }
 
   return res
@@ -384,6 +435,7 @@ export {
   searchProducts,
   uploadProductImages,
   getProductById,
+  getProductBySlug,
   updateProduct,
   deleteProduct,
   addReview,

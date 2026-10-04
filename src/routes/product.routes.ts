@@ -5,6 +5,7 @@ import {
   getProductsByCategory,
   searchProducts,
   getProductById,
+  getProductBySlug,
   uploadProductImages,
   updateProduct,
   deleteProduct,
@@ -27,6 +28,7 @@ router.route("/upload-images").post((req, res, next) => {
 router.route("/get-all").get(getAllProducts);
 router.route("/search").get(searchProducts);
 router.route("/category/:category").get(getProductsByCategory);
+router.route("/slug/:slug").get(getProductBySlug);
 router.route("/:id").get((req, res, next) => {
   getProductById(req, res, next);
 });
