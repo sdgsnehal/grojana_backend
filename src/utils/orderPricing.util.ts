@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { ApiError } from "./ApiError";
 import { ProductModel } from "../models/product.model";
 
-const SHIPPING_FEE = 49;
+const SHIPPING_FEE = 59;
 const FREE_SHIPPING_THRESHOLD = 1499;
 const TAX_RATE = 0.00;
 
