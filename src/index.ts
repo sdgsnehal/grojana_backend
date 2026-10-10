@@ -18,10 +18,14 @@ import { ApiError } from "./utils/ApiError";
 connectDB();
 
 const app = express();
+// Each variable may hold several comma-separated origins
 const allowedOrigins = [
   process.env.CORS_ORIGIN_FRONTEND,
   process.env.CORS_ORIGIN_ADMIN,
-].filter(Boolean) as string[];
+]
+  .flatMap((value) => (value ?? "").split(","))
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
